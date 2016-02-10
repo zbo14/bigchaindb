@@ -1,7 +1,7 @@
 # BigchainDB
 [![Codeship Status for
-ascribe/bigchain](https://codeship.com/projects/2e292f40-6b4b-0133-3a9c-4e7d03b9bb62/status?branch=master)
-](https://codeship.com/projects/115150) [![codecov.io](https://codecov.io/github/ascribe/bigchain/coverage.svg?token=GEwKioPPu9&branch=master)](https://codecov.io/github/ascribe/bigchain?branch=master)
+ascribe/bigchain](https://codeship.com/projects/a66d2f80-b25c-0133-6b70-02105821d9b0/status?branch=develop)
+](https://codeship.com/projects/115150) [![codecov.io](https://codecov.io/github/bigchaindb/bigchaindb/coverage.svg?branch=develop)](https://codecov.io/github/bigchaindb/bigchaindb?branch=develop) 
 
 
 ## Documentation
