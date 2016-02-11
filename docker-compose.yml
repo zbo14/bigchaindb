@@ -16,8 +16,9 @@ bigchaindb:
   build: .
   volumes:
     - ./:/usr/src/app/
+    - ~/.bigchaindb_docker:/root/.bigchaindb_docker
   links:
     - rethinkdb
   environment:
     BIGCHAIN_DATABASE_HOST: rethinkdb
-  command: bigchaindb start
+  command: bigchaindb -c /root/.bigchaindb_docker/config start

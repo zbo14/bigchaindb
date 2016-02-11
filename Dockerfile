@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir pytest pytest-cov
 
 COPY . /usr/src/app/
 
-RUN python setup.py develop
+RUN pip install --no-cache-dir -e .
