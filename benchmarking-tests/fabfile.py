@@ -44,10 +44,16 @@ def prepare_backlog(num_transactions=10000):
 @task
 @parallel
 def start_bigchaindb():
-    run('screen -d -m bigchaindb start &', pty=False)
+    run('bigchaindb start')
 
 
 @task
 @parallel
 def kill_bigchaindb():
     run('killall bigchaindb')
+
+
+@task
+@parallel
+def set_vmmap():
+    sudo('echo 131072 > /proc/sys/vm/max_map_count')
