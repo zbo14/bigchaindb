@@ -91,7 +91,7 @@ class Block(object):
             validated_transactions = []
             for i in range(1000):
                 try:
-                    tx = self.q_tx_validated.get(timeout=5)
+                    tx = self.q_tx_validated.get(block=False)
                 except queue.Empty:
                     break
 
@@ -144,7 +144,7 @@ class Block(object):
             tx_to_delete = []
             for i in range(1000):
                 try:
-                    tx = self.q_tx_delete.get(block=False)
+                    tx = self.q_tx_delete.get(timeout=5)
                 except queue.Empty:
                     break
 
