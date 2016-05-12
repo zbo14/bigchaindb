@@ -27,6 +27,7 @@ class Block(object):
         self.q_block = mp.Queue()
         self.initialized = mp.Event()
         self.monitor = Monitor()
+        self.pool_validators = mp.Pool()
 
     def filter_by_assignee(self):
         """
@@ -55,43 +56,18 @@ class Block(object):
 
         # create a bigchain instance
         b = Bigchain()
+        stop = False
 
         while True:
             self.monitor.gauge('tx_queue_gauge',
                                self.q_tx_to_validate.qsize(),
                                rate=bigchaindb.config['statsd']['rate'])
-            tx = self.q_tx_to_validate.get()
-
-            # poison pill
-            if tx == 'stop':
-                self.q_tx_delete.put('stop')
-                self.q_tx_validated.put('stop')
-                return
-
-            self.q_tx_delete.put(tx['id'])
-
-            with self.monitor.timer('validate_transaction', rate=bigchaindb.config['statsd']['rate']):
-                is_valid_transaction = b.is_valid_transaction(tx)
-
-            if is_valid_transaction:
-                self.q_tx_validated.put(tx)
-
-    def create_blocks(self):
-        """
-        Create a block with valid transactions
-        """
-
-        # create a bigchain instance
-        b = Bigchain()
-        stop = False
-
-        while True:
 
             # read up to 1000 transactions
-            validated_transactions = []
+            tx_to_validate = []
             for i in range(1000):
                 try:
-                    tx = self.q_tx_validated.get(block=False)
+                    tx = self.q_tx_to_validate.get(timeout=5)
                 except queue.Empty:
                     break
 
@@ -100,17 +76,42 @@ class Block(object):
                     stop = True
                     break
 
-                validated_transactions.append(tx)
+                tx_to_validate.append(tx)
+                self.q_tx_delete.put(tx['id'])
 
-            # if there are no transactions skip block creation
-            if validated_transactions:
-                # create block
-                block = b.create_block(validated_transactions)
-                self.q_block.put(block)
+            if tx_to_validate:
+                print('validated txs', len(tx_to_validate))
+                results = self.pool_validators.map(b.is_valid_transaction, tx_to_validate)
+                print('exited pool')
+                results = [tx for tx in results if tx]
+                self.q_tx_validated.put(results)
+                print(self.q_tx_validated.qsize())
 
             if stop:
+                self.q_tx_delete.put('stop')
+                self.q_tx_validated.put('stop')
+                return
+
+    def create_blocks(self):
+        """
+        Create a block with valid transactions
+        """
+
+        # create a bigchain instance
+        b = Bigchain()
+
+        while True:
+            validated_transactions = self.q_tx_validated.get()
+
+            # poison pill
+            if validated_transactions == 'stop':
                 self.q_block.put('stop')
                 return
+
+            # create block
+            print('creating block')
+            block = b.create_block(validated_transactions)
+            self.q_block.put(block)
 
     def write_blocks(self):
         """
@@ -216,11 +217,11 @@ class Block(object):
         """
 
         # initialize the processes
-        p_filter = ProcessGroup(name='filter_transactions', target=self.filter_by_assignee)
-        p_validate = ProcessGroup(name='validate_transactions', target=self.validate_transactions)
-        p_blocks = ProcessGroup(name='create_blocks', target=self.create_blocks)
-        p_write = ProcessGroup(name='write_blocks', target=self.write_blocks)
-        p_delete = ProcessGroup(name='delete_transactions', target=self.delete_transactions)
+        p_filter = mp.Process(name='filter_transactions', target=self.filter_by_assignee)
+        p_validate = mp.Process(name='validate_transactions', target=self.validate_transactions)
+        p_blocks = mp.Process(name='create_blocks', target=self.create_blocks)
+        p_write = mp.Process(name='write_blocks', target=self.write_blocks)
+        p_delete = mp.Process(name='delete_transactions', target=self.delete_transactions)
 
         # start the processes
         p_filter.start()

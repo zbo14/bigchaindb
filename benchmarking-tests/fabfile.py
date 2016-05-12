@@ -56,4 +56,4 @@ def kill_bigchaindb():
 @task
 @parallel
 def set_vmmap():
-    sudo('echo 131072 > /proc/sys/vm/max_map_count')
+    sudo('echo 262144 > /proc/sys/vm/max_map_count')

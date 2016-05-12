@@ -114,7 +114,7 @@ for _ in range(num_nodes):
             MinCount=1,
             MaxCount=1,
             KeyName='bigchaindb',
-            InstanceType='c3.8xlarge',
+            InstanceType='m3.2xlarge',
             # 'c3.8xlarge',
             # 'c4.8xlarge',
             # 'm3.2xlarge',
