@@ -81,15 +81,15 @@ class Processes(object):
         block = Block(self.q_new_transaction)
 
         # start the web api
-        app_server = server.create_server(bigchaindb.config['server'])
-        p_webapi = mp.Process(name='webapi', target=app_server.run)
-        p_webapi.start()
+        # app_server = server.create_server(bigchaindb.config['server'])
+        # p_webapi = mp.Process(name='webapi', target=app_server.run)
+        # p_webapi.start()
 
         # initialize the processes
         p_map_bigchain = mp.Process(name='bigchain_mapper', target=self.map_bigchain)
         p_map_backlog = mp.Process(name='backlog_mapper', target=self.map_backlog)
         p_block = mp.Process(name='block', target=block.start)
-        p_voter = Voter(self.q_new_block)
+        # p_voter = Voter(self.q_new_block)
 
         # start the processes
         logger.info('starting bigchain mapper')
@@ -100,9 +100,9 @@ class Processes(object):
         p_block.start()
 
         logger.info('starting voter')
-        p_voter.start()
+        # p_voter.start()
 
         # start message
         block.initialized.wait()
-        p_voter.initialized.wait()
+        # p_voter.initialized.wait()
         logger.info(BANNER.format(bigchaindb.config['server']['bind']))
