@@ -91,6 +91,7 @@ class Block(object):
             validated_transactions = []
             for i in range(1000):
                 try:
+                    logger.info(self.q_tx_validated.qsize())
                     tx = self.q_tx_validated.get(timeout=5)
                 except queue.Empty:
                     break
@@ -122,6 +123,7 @@ class Block(object):
 
         # Write blocks
         while True:
+            logger.info(self.q_block.qsize())
             block = self.q_block.get()
 
             # poison pill
