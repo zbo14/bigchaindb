@@ -123,7 +123,6 @@ class Block(object):
 
         # Write blocks
         while True:
-            logger.info(self.q_block.qsize())
             block = self.q_block.get()
 
             # poison pill
@@ -221,7 +220,7 @@ class Block(object):
         p_filter = mp.Process(name='filter_transactions', target=self.filter_by_assignee)
         p_validate = ProcessGroup(name='validate_transactions', target=self.validate_transactions)
         p_blocks = mp.Process(name='create_blocks', target=self.create_blocks)
-        p_write = mp.Process(name='write_blocks', target=self.write_blocks)
+        p_write = ProcessGroup(name='write_blocks', target=self.write_blocks)
         p_delete = mp.Process(name='delete_transactions', target=self.delete_transactions)
 
         # start the processes
