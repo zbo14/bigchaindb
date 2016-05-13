@@ -89,9 +89,9 @@ class Block(object):
 
             # read up to 1000 transactions
             validated_transactions = []
+            logger.info(self.q_tx_validated.qsize())
             for i in range(1000):
                 try:
-                    logger.info(self.q_tx_validated.qsize())
                     tx = self.q_tx_validated.get(timeout=5)
                 except queue.Empty:
                     break
