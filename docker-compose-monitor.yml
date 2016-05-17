@@ -13,7 +13,7 @@ services:
       - $INFLUXDB_DATA:/data
 
   grafana:
-    image: bigchaindb/grafana-bigchaindb-docker
+    image: test-grafana
     tty: true
     ports:
       - "3000:3000"

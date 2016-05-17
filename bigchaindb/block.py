@@ -86,7 +86,9 @@ class Block(object):
         stop = False
 
         while True:
-
+            self.monitor.gauge('q_tx_validated_gauge',
+                               self.q_tx_validated.qsize(),
+                               rate=bigchaindb.config['statsd']['rate'])
             # read up to 1000 transactions
             validated_transactions = []
             for i in range(1000):
@@ -107,6 +109,9 @@ class Block(object):
                 # create block
                 block = b.create_block(validated_transactions)
                 self.q_block.put(block)
+                self.monitor.gauge('q_block_gauge',
+                                   self.q_block.qsize(),
+                                   rate=bigchaindb.config['statsd']['rate'])
 
             if stop:
                 self.q_block.put('stop')
@@ -122,6 +127,7 @@ class Block(object):
 
         # Write blocks
         while True:
+
             block = self.q_block.get()
 
             # poison pill
@@ -142,6 +148,9 @@ class Block(object):
         while True:
             # try to delete in batch to reduce io
             tx_to_delete = []
+            self.monitor.gauge('q_tx_delete_gauge',
+                               self.q_tx_delete.qsize(),
+                               rate=bigchaindb.config['statsd']['rate'])
             for i in range(1000):
                 try:
                     tx = self.q_tx_delete.get(timeout=5)

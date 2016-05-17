@@ -79,7 +79,11 @@ def run_gather_metrics(args):
 
                 num_transactions_received += block_num_transactions
                 elapsed_time = time_now - initial_time
-                percent_complete = round((num_transactions_received / num_transactions) * 100)
+
+                if num_transactions != 0:
+                    percent_complete = round((num_transactions_received / num_transactions) * 100)
+                else:
+                    percent_complete = float('nan')
 
                 if elapsed_time != 0:
                     transactions_per_second = round(num_transactions_received / elapsed_time)
