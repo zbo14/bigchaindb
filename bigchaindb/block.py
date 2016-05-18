@@ -221,12 +221,12 @@ class Block(object):
         p_validate = ProcessGroup(name='validate_transactions', target=self.validate_transactions)
         p_blocks = mp.Process(name='create_blocks', target=self.create_blocks)
         p_write = ProcessGroup(name='write_blocks', target=self.write_blocks)
-        p_delete = mp.Process(name='delete_transactions', target=self.delete_transactions)
+        # p_delete = mp.Process(name='delete_transactions', target=self.delete_transactions)
 
         # start the processes
         p_filter.start()
         p_validate.start()
         p_blocks.start()
         p_write.start()
-        p_delete.start()
+        # p_delete.start()
 
