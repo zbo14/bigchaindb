@@ -107,7 +107,8 @@ class Block(object):
             if validated_transactions:
                 # create block
                 block = b.create_block(validated_transactions)
-                self.q_block.put(block)
+                # self.q_block.put(block)
+                b.write_block(block)
 
             if stop:
                 self.q_block.put('stop')
@@ -222,13 +223,13 @@ class Block(object):
         p_validate = ProcessGroup(name='validate_transactions', target=self.validate_transactions,
                                   concurrency=(mp.cpu_count() - 2))
         p_blocks = mp.Process(name='create_blocks', target=self.create_blocks)
-        p_write = mp.Process(name='write_blocks', target=self.write_blocks)
+        # p_write = mp.Process(name='write_blocks', target=self.write_blocks)
         # p_delete = mp.Process(name='delete_transactions', target=self.delete_transactions)
 
         # start the processes
         p_filter.start()
         p_validate.start()
         p_blocks.start()
-        p_write.start()
+        # p_write.start()
         # p_delete.start()
 
