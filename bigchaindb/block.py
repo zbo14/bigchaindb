@@ -89,7 +89,7 @@ class Block(object):
 
             # read up to 1000 transactions
             validated_transactions = []
-            logger.info(self.q_tx_validated.qsize())
+            logger.info('q_tx_validated: {}'.format(self.q_tx_validated.qsize()))
             for i in range(1000):
                 try:
                     tx = self.q_tx_validated.get(timeout=5)
@@ -123,6 +123,7 @@ class Block(object):
 
         # Write blocks
         while True:
+            logger.info('q_block: {}'.format(self.q_block.qsize()))
             block = self.q_block.get()
 
             # poison pill
