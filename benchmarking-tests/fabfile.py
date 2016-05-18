@@ -29,6 +29,18 @@ def put_benchmark_utils():
 
 @task
 @parallel
+def put_bottleneck_tests():
+    put('bottleneck_tests.py')
+
+
+@task
+@parallel
+def run_bottleneck_tests():
+    run('python3 bottleneck_tests.py')
+
+
+@task
+@parallel
 def set_statsd_host(statsd_host='localhost'):
     run('python3 benchmark_utils.py set-statsd-host {}'.format(statsd_host))
     print('update configuration')

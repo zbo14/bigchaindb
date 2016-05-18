@@ -62,7 +62,7 @@ def run_gather_metrics(args):
                 ' saving all the metrics gathered up to this point.')
 
     logger.info('\t{:<20} {:<20} {:<20} {:<20}'.format('timestamp', 'tx in block',
-                                                     'tx/s', '% complete'))
+                                                       'tx/s', '% complete'))
 
     # listen to the changefeed
     try:
@@ -79,7 +79,8 @@ def run_gather_metrics(args):
 
                 num_transactions_received += block_num_transactions
                 elapsed_time = time_now - initial_time
-                percent_complete = round((num_transactions_received / num_transactions) * 100)
+                # percent_complete = round((num_transactions_received / num_transactions) * 100)
+                percent_complete = 0
 
                 if elapsed_time != 0:
                     transactions_per_second = round(num_transactions_received / elapsed_time)
@@ -89,8 +90,8 @@ def run_gather_metrics(args):
                 logger.info('\t{:<20} {:<20} {:<20} {:<20}'.format(time_now, block_num_transactions,
                                                                    transactions_per_second, percent_complete))
 
-                if (num_transactions - num_transactions_received) == 0:
-                    break
+                # if (num_transactions - num_transactions_received) == 0:
+                #     break
     except KeyboardInterrupt:
         logger.info('Interrupted. Exiting early...')
     finally:
