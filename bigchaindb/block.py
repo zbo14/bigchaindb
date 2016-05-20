@@ -22,7 +22,7 @@ class Block(object):
         self._q_new_transaction = q_new_transaction
         self.q_new_transaction = None
         self.q_tx_to_validate = mp.Queue()
-        self.q_tx_validated = mp.Queue()
+        self.q_tx_validated = mp.Queue(maxsize=30000)
         self.q_tx_delete = mp.Queue()
         self.q_block = mp.Queue()
         self.initialized = mp.Event()
