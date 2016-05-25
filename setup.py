@@ -87,6 +87,7 @@ setup(
         'flask==0.10.1',
         'requests==2.9',
         'gunicorn~=19.0',
+        'pyzmq == 15.2.0',
     ],
     setup_requires=['pytest-runner'],
     tests_require=tests_require,
