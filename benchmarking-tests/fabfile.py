@@ -1,5 +1,7 @@
 from __future__ import with_statement, unicode_literals
 
+import time
+
 from fabric.api import sudo, env, hosts
 from fabric.api import task, parallel
 from fabric.contrib.files import sed
@@ -25,6 +27,38 @@ env.key_filename = 'pem/bigchaindb.pem'
 @parallel
 def put_benchmark_utils():
     put('benchmark_utils.py')
+
+
+@task
+@parallel
+def put_zmq():
+    put('../zmq-tests/task_ventilator.py')
+    put('../zmq-tests/worker_blocks.py')
+    put('../zmq-tests/worker_validator.py')
+
+
+@task
+@parallel
+def start_zmq_validators():
+    run('python3 worker_validator.py 20')
+
+
+@task
+@parallel
+def start_zmq_block():
+    run('python3 worker_blocks.py')
+
+
+@task
+@parallel
+def start_zmq_task():
+    run('python3 task_ventilator.py')
+
+
+@task
+@parallel
+def kill():
+    run('killall python3')
 
 
 @task
