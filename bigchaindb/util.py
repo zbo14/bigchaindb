@@ -20,9 +20,11 @@ from bigchaindb import crypto
 
 class ProcessGroup(object):
 
-    def __init__(self, concurrency=None, group=None, target=None, name=None,
+    def __init__(self, concurrency=None, factor=1.0, group=None, target=None, name=None,
                  args=None, kwargs=None, daemon=None):
-        self.concurrency = concurrency or mp.cpu_count()
+
+        concurrency = concurrency or mp.cpu_count()
+        self.concurrency = int(math.ceil(concurrency * factor))
         self.group = group
         self.target = target
         self.name = name
@@ -32,16 +34,46 @@ class ProcessGroup(object):
         self.processes = []
 
     def start(self):
-        def _wrap(*args, **kwargs):
-            setproctitle('bcdb:' + mp.current_process().name)
-            self.target(*args, **kwargs)
+        def wrap(index, total):
+            def _wrap(*args, **kwargs):
+                setproctitle('bcdb:{}_{}_{}'.format(mp.current_process().name, index, total))
+                self.target(*args, **kwargs)
+            return _wrap
 
         for i in range(self.concurrency):
-            proc = mp.Process(group=self.group, target=_wrap,
+            proc = mp.Process(group=self.group, target=wrap(i+1, self.concurrency),
                               name=self.name, args=self.args,
                               kwargs=self.kwargs, daemon=self.daemon)
             proc.start()
             self.processes.append(proc)
+
+
+class BufferedQueue:
+    def __init__(self, maxsize=0, buffer_size=512):
+        self.queue = mp.Queue(maxsize=maxsize)
+        self.buffer_in = []
+        self.buffer_out = []
+        self.buffer_size = buffer_size
+
+    def put(self, obj):
+        self.buffer_out.append(obj)
+        if len(self.buffer_out) == self.buffer_size:
+            self.queue.put(self.buffer_out)
+            self.buffer_out = []
+
+    def get(self, timeout=None):
+        try:
+            return self.buffer_in.pop()
+        except IndexError:
+            self.buffer_in = self.queue.get(timeout=timeout)
+            return self.buffer_in.pop()
+
+    def flush(self):
+        self.queue.put(self.buffer_out)
+        self.buffer_out = []
+
+    def qsize(self):
+        return self.queue.qsize() * self.buffer_size
 
 
 # Inspired by:

@@ -3,13 +3,14 @@ import threading
 import multiprocessing as mp
 import queue
 
+import time
 import logstats
 import rethinkdb as r
 
 import bigchaindb
 from bigchaindb import Bigchain
 from bigchaindb.monitor import Monitor
-from bigchaindb.util import ProcessGroup
+from bigchaindb.util import ProcessGroup, BufferedQueue
 
 
 logger = logging.getLogger(__name__)
@@ -21,12 +22,12 @@ class Block(object):
         """
         Initialize the class with the needed
         """
-        self.ls = logstats.Logstats()
+        self.ls = logstats.Logstats(msg='new tx: {new_tx:<6} validated tx: {tx_validated:<6} blocks: {block_ready:<2}')
         self._q_new_transaction = q_new_transaction
-        self.q_new_transaction = None
-        self.q_tx_to_validate = mp.Queue(maxsize=10000)
-        self.q_tx_validated = mp.Queue()
-        self.q_tx_delete = mp.Queue()
+        self.q_new_transaction = BufferedQueue(buffer_size=4096*4, maxsize=32)
+        self.q_tx_to_validate = BufferedQueue()
+        self.q_tx_validated = BufferedQueue(buffer_size=256, maxsize=1000)
+        self.q_tx_delete = BufferedQueue()
         self.q_block = mp.Queue()
         self.initialized = mp.Event()
         self.monitor = Monitor()
@@ -60,7 +61,7 @@ class Block(object):
         b = Bigchain()
 
         while True:
-            txs = self.q_new_transaction.get()
+            tx = self.q_new_transaction.get()
 
             # poison pill
             if tx == 'stop':
@@ -91,16 +92,16 @@ class Block(object):
             validated_transactions = []
             for i in range(1000):
                 try:
-                    tx = self.q_tx_validated.get(timeout=5)
+                    txs = self.q_tx_validated.get(timeout=5)
                 except queue.Empty:
                     break
 
                 # poison pill
-                if tx == 'stop':
+                if txs == 'stop':
                     stop = True
                     break
 
-                validated_transactions.append(tx)
+                validated_transactions.extend(txs)
 
             # if there are no transactions skip block creation
             if validated_transactions:
@@ -169,8 +170,6 @@ class Block(object):
         # create bigchain instance
         b = Bigchain()
 
-        # create a queue to store initial results
-        q_initial = mp.Queue()
 
         # get initial results
         initial_results = r.table('backlog')\
@@ -180,21 +179,34 @@ class Block(object):
 
         # add results to the queue
         for result in initial_results:
-            q_initial.put(result)
+            self.q_new_transaction.put(result)
 
         for i in range(mp.cpu_count()):
-            q_initial.put('stop')
+            self.q_new_transaction.put('stop')
 
-        return q_initial
+        return queue
 
     def start(self):
         """
         Bootstrap and start the processes
         """
+
+        threading.Thread(target=self.queue_status).start()
+        logstats.thread.start(self.ls)
+
         logger.info('bootstraping block module...')
-        self.q_new_transaction = self.bootstrap()
+        #self.q_new_transaction = self.bootstrap()
         logger.info('finished reading past transactions')
         self._start()
+
+        # LOOK AT ME
+        # LOOK AT ME
+        # LOOK AT ME
+        # LOOK AT ME
+        # LOOK AT ME
+        # LOOK AT ME
+        return
+
         logger.info('finished bootstraping block module...')
 
         logger.info('starting block module...')
@@ -213,28 +225,25 @@ class Block(object):
     def queue_status(self):
         while True:
             self.ls['new_tx'] = self.q_new_transaction.qsize() if self.q_new_transaction else self._q_new_transaction.qsize()
-            self.ls['tx_to_validate'] = self.q_tx_to_validate.qsize()
+            #self.ls['tx_to_validate'] = self.q_tx_to_validate.qsize()
             self.ls['tx_validated'] = self.q_tx_validated.qsize()
             #self.ls['tx_delete'] = self.q_tx_delete.qsize()
             self.ls['block_ready'] = self.q_block.qsize()
+            time.sleep(1)
 
     def _start(self):
         """
         Initialize, spawn, and start the processes
         """
-
-        threading.Thread(target=self.queue_status).start()
-        logstats.thread.start(self.ls)
-
         # initialize the processes
-        # p_filter = ProcessGroup(1, name='filter_transactions', target=self.filter_by_assignee)
-        p_validate = ProcessGroup(6, name='validate_transactions', target=self.validate_transactions)
-        p_blocks = ProcessGroup(2, name='create_blocks', target=self.create_blocks)
-        p_write = ProcessGroup(1, name='write_blocks', target=self.write_blocks)
+        p_filter = ProcessGroup(concurrency=1, name='bootstrap', target=self.bootstrap)
+        p_validate = ProcessGroup(name='tx_validate', target=self.validate_transactions)
+        p_blocks = ProcessGroup(concurrency=1, name='tx_create', target=self.create_blocks)
+        p_write = ProcessGroup(concurrency=1, name='write_blocks', target=self.write_blocks)
         #p_delete = ProcessGroup(name='delete_transactions', target=self.delete_transactions)
 
         # start the processes
-        #p_filter.start()
+        p_filter.start()
         p_validate.start()
         p_blocks.start()
         p_write.start()
