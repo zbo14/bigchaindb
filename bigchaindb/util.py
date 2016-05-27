@@ -1,3 +1,4 @@
+import math
 import copy
 import time
 import contextlib
@@ -7,6 +8,7 @@ import multiprocessing as mp
 from datetime import datetime
 
 import rapidjson
+from setproctitle import setproctitle
 
 import cryptoconditions as cc
 from cryptoconditions.exceptions import ParsingError
@@ -30,8 +32,12 @@ class ProcessGroup(object):
         self.processes = []
 
     def start(self):
+        def _wrap(*args, **kwargs):
+            setproctitle('bcdb:' + mp.current_process().name)
+            self.target(*args, **kwargs)
+
         for i in range(self.concurrency):
-            proc = mp.Process(group=self.group, target=self.target,
+            proc = mp.Process(group=self.group, target=_wrap,
                               name=self.name, args=self.args,
                               kwargs=self.kwargs, daemon=self.daemon)
             proc.start()

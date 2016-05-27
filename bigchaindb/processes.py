@@ -1,7 +1,9 @@
 import logging
 import multiprocessing as mp
+from bigchaindb.util import ProcessGroup
 
 import rethinkdb as r
+from setproctitle import setproctitle
 
 import bigchaindb
 from bigchaindb import Bigchain
@@ -82,16 +84,23 @@ class Processes(object):
         block = Block(self.q_new_transaction)
 
         # start the web api
-        app_server = server.create_server(bigchaindb.config['server'])
-        p_webapi = mp.Process(name='webapi', target=app_server.run)
-        p_webapi.start()
+        #app_server = server.create_server(bigchaindb.config['server'])
+        #p_webapi = mp.Process(name='webapi', target=app_server.run)
+        #p_webapi.start()
 
         # initialize the processes
-        p_map_bigchain = mp.Process(name='bigchain_mapper', target=self.map_bigchain)
-        p_map_backlog = mp.Process(name='backlog_mapper', target=self.map_backlog)
-        p_block = mp.Process(name='block', target=block.start)
-        p_voter = Voter(self.q_new_block)
-        p_election = Election(self.q_block_new_vote)
+        p_map_bigchain = ProcessGroup(concurrency=1,
+                                      name='bigchain_mapper',
+                                      target=self.map_bigchain)
+        p_map_backlog = ProcessGroup(concurrency=1,
+                                     name='backlog_mapper',
+                                     target=self.map_backlog)
+        p_block = ProcessGroup(concurrency=1,
+                               name='block',
+                               target=block.start)
+
+        #p_voter = Voter(self.q_new_block)
+        #p_election = Election(self.q_block_new_vote)
 
         # start the processes
         logger.info('starting bigchain mapper')
@@ -101,12 +110,12 @@ class Processes(object):
         logger.info('starting block')
         p_block.start()
 
-        logger.info('starting voter')
-        p_voter.start()
-        logger.info('starting election')
-        p_election.start()
+        #logger.info('starting voter')
+        #p_voter.start()
+        #logger.info('starting election')
+        #p_election.start()
 
         # start message
-        block.initialized.wait()
-        p_voter.initialized.wait()
-        logger.info(BANNER.format(bigchaindb.config['server']['bind']))
+        #block.initialized.wait()
+        #p_voter.initialized.wait()
+        #logger.info(BANNER.format(bigchaindb.config['server']['bind']))

@@ -1,7 +1,9 @@
 import logging
+import threading
 import multiprocessing as mp
 import queue
 
+import logstats
 import rethinkdb as r
 
 import bigchaindb
@@ -19,9 +21,10 @@ class Block(object):
         """
         Initialize the class with the needed
         """
+        self.ls = logstats.Logstats()
         self._q_new_transaction = q_new_transaction
         self.q_new_transaction = None
-        self.q_tx_to_validate = mp.Queue()
+        self.q_tx_to_validate = mp.Queue(maxsize=10000)
         self.q_tx_validated = mp.Queue()
         self.q_tx_delete = mp.Queue()
         self.q_block = mp.Queue()
@@ -57,10 +60,7 @@ class Block(object):
         b = Bigchain()
 
         while True:
-            self.monitor.gauge('tx_queue_gauge',
-                               self.q_tx_to_validate.qsize(),
-                               rate=bigchaindb.config['statsd']['rate'])
-            tx = self.q_tx_to_validate.get()
+            txs = self.q_new_transaction.get()
 
             # poison pill
             if tx == 'stop':
@@ -68,7 +68,7 @@ class Block(object):
                 self.q_tx_validated.put('stop')
                 return
 
-            self.q_tx_delete.put(tx['id'])
+            #self.q_tx_delete.put(tx['id'])
 
             with self.monitor.timer('validate_transaction', rate=bigchaindb.config['statsd']['rate']):
                 is_valid_transaction = b.is_valid_transaction(tx)
@@ -210,22 +210,34 @@ class Block(object):
         for i in range(mp.cpu_count()):
             self.q_new_transaction.put('stop')
 
+    def queue_status(self):
+        while True:
+            self.ls['new_tx'] = self.q_new_transaction.qsize() if self.q_new_transaction else self._q_new_transaction.qsize()
+            self.ls['tx_to_validate'] = self.q_tx_to_validate.qsize()
+            self.ls['tx_validated'] = self.q_tx_validated.qsize()
+            #self.ls['tx_delete'] = self.q_tx_delete.qsize()
+            self.ls['block_ready'] = self.q_block.qsize()
+
     def _start(self):
         """
         Initialize, spawn, and start the processes
         """
 
+        threading.Thread(target=self.queue_status).start()
+        logstats.thread.start(self.ls)
+
         # initialize the processes
-        p_filter = ProcessGroup(name='filter_transactions', target=self.filter_by_assignee)
-        p_validate = ProcessGroup(name='validate_transactions', target=self.validate_transactions)
-        p_blocks = ProcessGroup(name='create_blocks', target=self.create_blocks)
-        p_write = ProcessGroup(name='write_blocks', target=self.write_blocks)
-        p_delete = ProcessGroup(name='delete_transactions', target=self.delete_transactions)
+        # p_filter = ProcessGroup(1, name='filter_transactions', target=self.filter_by_assignee)
+        p_validate = ProcessGroup(6, name='validate_transactions', target=self.validate_transactions)
+        p_blocks = ProcessGroup(2, name='create_blocks', target=self.create_blocks)
+        p_write = ProcessGroup(1, name='write_blocks', target=self.write_blocks)
+        #p_delete = ProcessGroup(name='delete_transactions', target=self.delete_transactions)
 
         # start the processes
-        p_filter.start()
+        #p_filter.start()
         p_validate.start()
         p_blocks.start()
         p_write.start()
-        p_delete.start()
+
+        #p_delete.start()
 
