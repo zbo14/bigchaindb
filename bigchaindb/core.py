@@ -523,7 +523,7 @@ class Bigchain(object):
 
         return block
 
-    def vote(self, block, previous_block_id, decision, invalid_reason=None):
+    def vote(self, block_id, previous_block_id, decision, invalid_reason=None):
         """Cast your vote on the block given the previous_block_hash and the decision (valid/invalid)
         return the block to the updated in the database.
 
@@ -535,7 +535,7 @@ class Bigchain(object):
         """
 
         vote = {
-            'voting_for_block': block['id'],
+            'voting_for_block': block_id,
             'previous_block': previous_block_id,
             'is_block_valid': decision,
             'invalid_reason': invalid_reason,
@@ -553,19 +553,20 @@ class Bigchain(object):
 
         return vote_signed
 
-    def write_vote(self, block, vote, block_number):
+    # def write_vote(self, block, vote, block_number):
+    def write_vote(self, vote):
         """Write the vote to the database."""
 
         # First, make sure this block doesn't contain a vote from this node
-        if self.has_previous_vote(block):
-            return None
+        # if self.has_previous_vote(block):
+        #    return None
 
         update = {'votes': r.row['votes'].append(vote)}
 
         # We need to *not* override the existing block_number, if any
         # FIXME: MIGHT HAVE RACE CONDITIONS WITH THE OTHER NODES IN THE FEDERATION
-        if 'block_number' not in block:
-            update['block_number'] = block_number
+        # if 'block_number' not in block:
+        #     update['block_number'] = block_number
 
         r.table('bigchain') \
             .get(vote['vote']['voting_for_block']) \
