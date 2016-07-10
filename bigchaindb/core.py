@@ -11,6 +11,9 @@ from bigchaindb import config_utils
 from bigchaindb import exceptions
 from bigchaindb import crypto
 
+import os
+pid = os.getpid()
+
 
 class GenesisBlockAlreadyExistsError(Exception):
     pass

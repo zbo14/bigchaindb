@@ -1,9 +1,7 @@
-import multiprocessing as mp
-
 import rethinkdb as r
 from pipes import Pipeline, Node
 
-from bigchaindb.pipelines.utils import changes, PrefeedQueue
+from bigchaindb.pipelines.utils import ChangeFeed
 from bigchaindb import Bigchain
 
 
@@ -13,8 +11,15 @@ class Block:
         self.bigchain = Bigchain()
         self.txs = []
 
+    def filter_tx(self, tx):
+        if tx['assignee'] == self.bigchain.me:
+            tx.pop('assignee')
+            return tx
+
     def validate_tx(self, tx):
-        return self.bigchain.is_valid_transaction(tx)
+        tx = self.bigchain.is_valid_transaction(tx)
+        if tx:
+            return tx
 
     def create(self, tx, timeout=False):
         if tx:
@@ -26,35 +31,39 @@ class Block:
 
     def write(self, block):
         self.bigchain.write_block(block)
+        return block
 
 
 def initial():
     b = Bigchain()
 
-    initial = r.table('backlog')\
-        .between([b.me, r.minval],
-                 [b.me, r.maxval],
-                 index='assignee__transaction_timestamp')\
-        .order_by(index=r.asc('assignee__transaction_timestamp'))\
-        .run(b.conn)
+    rs = r.table('backlog')\
+          .between([b.me, r.minval],
+                   [b.me, r.maxval],
+                   index='assignee__transaction_timestamp')\
+          .order_by(index=r.asc('assignee__transaction_timestamp'))\
+          .run(b.conn)
+    return rs
 
-    return initial
+
+def get_changefeed():
+    return ChangeFeed('backlog', 'insert', prefeed=initial())
 
 
 def create_pipeline():
-    queue_changes = mp.Queue()
-    mp.Process(target=changes(queue_changes, 'backlog', 'insert')).start()
-    inqueue = PrefeedQueue(initial(), queue_changes)
-
     block = Block()
+
     block_pipeline = Pipeline([
+        Node(block.filter_tx),
         Node(block.validate_tx, fraction_of_cores=1),
         Node(block.create, timeout=1),
         Node(block.write)
-    ], inqueue=inqueue)
+    ])
 
     return block_pipeline
 
 
 if __name__ == '__main__':
-    create_pipeline().start()
+    pipeline = create_pipeline()
+    pipeline.setup(indata=get_changefeed())
+    pipeline.start()

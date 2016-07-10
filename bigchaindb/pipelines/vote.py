@@ -1,9 +1,8 @@
 from collections import Counter
-import multiprocessing as mp
 
 from pipes import Pipeline, Node
 
-from bigchaindb.pipelines.utils import changes, PrefeedQueue
+from bigchaindb.pipelines.utils import ChangeFeed
 from bigchaindb import Bigchain
 
 
@@ -51,17 +50,16 @@ def initial(queue):
 
 
 def create_pipeline():
-    queue_changes = mp.Queue()
-    mp.Process(target=changes(queue_changes, 'bigchain', 'insert')).start()
-    inqueue = PrefeedQueue(initial(), queue_changes)
-
+    changefeed = ChangeFeed('bigchain', 'insert', prefeed=initial())
     voter = Voter()
+
     vote_pipeline = Pipeline([
-        voter.ungroup,
+        changefeed,
+        Node(voter.ungroup),
         Node(voter.validate_tx, fraction_of_cores=1),
-        voter.vote,
-        voter.write_vote
-    ], inqueue=inqueue)
+        Node(voter.vote),
+        Node(voter.write_vote)
+    ])
 
     return vote_pipeline
 
