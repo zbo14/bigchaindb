@@ -33,6 +33,16 @@ class Block:
         self.bigchain.write_block(block)
         return block
 
+    def delete_txs_from_block(self, block):
+        txs = [tx['id'] for tx in block['block']['transactions']]
+
+        r.table('backlog')\
+         .get_all(*txs)\
+         .delete(durability='hard')\
+         .run(self.bigchain.conn)
+
+        return block
+
 
 def initial():
     b = Bigchain()
@@ -57,7 +67,8 @@ def create_pipeline():
         Node(block.filter_tx),
         Node(block.validate_tx, fraction_of_cores=1),
         Node(block.create, timeout=1),
-        Node(block.write)
+        Node(block.write),
+        Node(block.delete_txs_from_block)
     ])
 
     return block_pipeline

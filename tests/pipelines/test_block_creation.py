@@ -57,6 +57,28 @@ def test_write_block(b, user_vk):
     assert len(block_doc['block']['transactions']) == 100
 
 
+def test_delete_txs_in_block(b, user_vk):
+    block_maker = block.Block()
+
+    # make sure that we only have the genesis block in bigchain
+    r.table('bigchain').delete().run(b.conn)
+    b.create_genesis_block()
+
+    # create transactions
+    txs = []
+    for i in range(100):
+        tx = b.create_transaction(b.me, user_vk, None, 'CREATE')
+        tx = b.sign_transaction(tx, b.me_private)
+        b.write_transaction(tx)
+        txs.append(tx)
+
+    block_doc = b.create_block(txs)
+
+    assert r.table('backlog').count().run(b.conn) == 100
+    block_maker.delete_txs_from_block(block_doc)
+    assert r.table('backlog').count().run(b.conn) == 0
+
+
 def test_prefeed(b, user_vk):
     # make sure that there are no transactions in the backlog
     r.table('backlog').delete().run(b.conn)
