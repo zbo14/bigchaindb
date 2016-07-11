@@ -74,7 +74,12 @@ def create_pipeline():
     return block_pipeline
 
 
-if __name__ == '__main__':
+def start():
     pipeline = create_pipeline()
     pipeline.setup(indata=get_changefeed())
     pipeline.start()
+    return pipeline
+
+
+if __name__ == '__main__':
+    start()

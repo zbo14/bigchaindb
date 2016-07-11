@@ -536,6 +536,8 @@ class Bigchain(object):
             decision (bool): Whether the block is valid or invalid.
             invalid_reason (Optional[str]): Reason the block is invalid
         """
+        assert isinstance(block_id, str)
+        assert isinstance(previous_block_id, str)
 
         vote = {
             'voting_for_block': block_id,
