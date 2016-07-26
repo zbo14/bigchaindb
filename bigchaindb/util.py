@@ -136,7 +136,6 @@ def timestamp():
     return str(round(time.time()))
 
 
-# TODO: Consider remove the operation (if there are no inputs CREATE else TRANSFER)
 def create_tx(current_owners, new_owners, inputs, operation, payload=None):
     """Create a new transaction
 
