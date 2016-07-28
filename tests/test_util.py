@@ -30,14 +30,28 @@ def mock_queue(monkeypatch):
 
 
 def test_transform_create(b, user_sk, user_vk):
-    from bigchaindb import util
-    tx = util.create_tx(user_vk, user_vk, None, 'CREATE')
-    tx = util.transform_create(tx)
-    tx = util.sign_tx(tx, b.me_private)
+    # TODO: Create transaction creation fixture?
+    from bigchaindb.transaction import (
+        Fulfillment,
+        Condition,
+        Transaction,
+        TransactionType,
+    )
+    from bigchaindb.util import (
+        transform_create,
+        sign_tx,
+        validate_fulfillments,
+    )
 
-    assert tx['transaction']['fulfillments'][0]['current_owners'][0] == b.me
-    assert tx['transaction']['conditions'][0]['new_owners'][0] == user_vk
-    assert util.validate_fulfillments(tx)
+    ffill = Fulfillment([user_vk])
+    cond = Condition([user_vk])
+    tx = Transaction([ffill], [cond], TransactionType.CREATE).to_dict()
+    tx = transform_create(tx)
+    tx = sign_tx(tx, b.me_private)
+
+    assert tx['transaction']['fulfillments'][0]['owners_before'][0] == b.me
+    assert tx['transaction']['conditions'][0]['owners_after'][0] == user_vk
+    assert validate_fulfillments(tx)
 
 
 def test_empty_pool_is_populated_with_instances(mock_queue):
@@ -144,22 +158,6 @@ def test_process_group_instantiates_and_start_processes(mock_process):
 
     for process in pg.processes:
         process.start.assert_called_with()
-
-
-def test_create_tx_with_empty_inputs():
-    from bigchaindb.util import create_tx
-    tx = create_tx(None, None, [], None)
-    assert 'id' in tx
-    assert 'transaction' in tx
-    assert 'version' in tx
-    assert 'fulfillments' in tx['transaction']
-    assert 'conditions' in tx['transaction']
-    assert 'operation' in tx['transaction']
-    assert 'timestamp' in tx['transaction']
-    assert 'data' in tx['transaction']
-    assert len(tx['transaction']['fulfillments']) == 1
-    assert tx['transaction']['fulfillments'][0] == {
-        'current_owners': [], 'input': None, 'fulfillment': None, 'fid': 0}
 
 
 def test_fulfill_threshold_signature_fulfillment_pubkey_notfound(monkeypatch):

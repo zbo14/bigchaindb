@@ -354,6 +354,40 @@ def sign_tx(transaction, signing_keys, bigchain=None):
     return tx
 
 
+def get_fulfillment_message(transaction, fulfillment, serialized=False):
+    """Get the fulfillment message for signing a specific fulfillment in a transaction
+
+    Args:
+        transaction (dict): a transaction
+        fulfillment (dict): a specific fulfillment (for a condition index) within the transaction
+        serialized (Optional[bool]): False returns a dict, True returns a serialized string
+
+    Returns:
+        str|dict: fulfillment message
+    """
+    # data to sign contains common transaction data
+    fulfillment_message = {
+        'operation': transaction['transaction']['operation'],
+        'timestamp': transaction['transaction']['timestamp'],
+        'data': transaction['transaction']['data'],
+        'version': transaction['version'],
+        'id': transaction['id']
+    }
+    # and the condition which needs to be retrieved from the output of a previous transaction
+    # or created on the fly it this is a `CREATE` transaction
+    fulfillment_message.update({
+        'fulfillment': copy.deepcopy(fulfillment),
+        'condition': transaction['transaction']['conditions'][fulfillment['fid']]
+    })
+
+    # remove any fulfillment, as a fulfillment cannot sign itself
+    fulfillment_message['fulfillment']['fulfillment'] = None
+
+    if serialized:
+        return serialize(fulfillment_message)
+    return fulfillment_message
+
+
 def fulfill_simple_signature_fulfillment(fulfillment, parsed_fulfillment, fulfillment_message, key_pairs):
     """Fulfill a cryptoconditions.Ed25519Fulfillment
 
@@ -460,40 +494,6 @@ def validate_fulfillments(signed_transaction):
             return False
 
     return True
-
-
-def get_fulfillment_message(transaction, fulfillment, serialized=False):
-    """Get the fulfillment message for signing a specific fulfillment in a transaction
-
-    Args:
-        transaction (dict): a transaction
-        fulfillment (dict): a specific fulfillment (for a condition index) within the transaction
-        serialized (Optional[bool]): False returns a dict, True returns a serialized string
-
-    Returns:
-        str|dict: fulfillment message
-    """
-    # data to sign contains common transaction data
-    fulfillment_message = {
-        'operation': transaction['transaction']['operation'],
-        'timestamp': transaction['transaction']['timestamp'],
-        'data': transaction['transaction']['data'],
-        'version': transaction['version'],
-        'id': transaction['id']
-    }
-    # and the condition which needs to be retrieved from the output of a previous transaction
-    # or created on the fly it this is a `CREATE` transaction
-    fulfillment_message.update({
-        'fulfillment': copy.deepcopy(fulfillment),
-        'condition': transaction['transaction']['conditions'][fulfillment['fid']]
-    })
-
-    # remove any fulfillment, as a fulfillment cannot sign itself
-    fulfillment_message['fulfillment']['fulfillment'] = None
-
-    if serialized:
-        return serialize(fulfillment_message)
-    return fulfillment_message
 
 
 def get_input_condition(bigchain, fulfillment):
@@ -611,7 +611,7 @@ def transform_create(tx):
     payload = None
     if transaction['data'] and 'payload' in transaction['data']:
         payload = transaction['data']['payload']
-    new_tx = create_tx(b.me, transaction['fulfillments'][0]['current_owners'], None, 'CREATE', payload=payload)
+    new_tx = create_tx(b.me, transaction['fulfillments'][0]['owners_before'], None, 'CREATE', payload=payload)
     return new_tx
 
 
