@@ -137,7 +137,7 @@ def timestamp():
 
 
 # TODO: Consider remove the operation (if there are no inputs CREATE else TRANSFER)
-def create_tx(current_owners, new_owners, inputs, operation, payload=None):
+def create_tx(current_owners, new_owners, inputs, operation, payload=None, amount=1):
     """Create a new transaction
 
     A transaction in the bigchain is a transfer of a digital asset between two entities represented
@@ -158,6 +158,7 @@ def create_tx(current_owners, new_owners, inputs, operation, payload=None):
         inputs (list): id of the transaction to use as input.
         operation (str): Either `CREATE` or `TRANSFER` operation.
         payload (Optional[dict]): dictionary with information about asset.
+        amount (Optional[int]): shares of a digital asset. defaults to 1
 
     Returns:
         dict: unsigned transaction.
@@ -187,6 +188,7 @@ def create_tx(current_owners, new_owners, inputs, operation, payload=None):
                             "new_owners": ["list of <pub-keys>"],
                             "condition": "condition to be met",
                             "cid": "condition index (1-to-1 mapping with fid)"
+                            "amount": "shares of a divisible asset. defaults to 1"
                         }
                     ],
                 "operation": "<string>",
@@ -274,7 +276,8 @@ def create_tx(current_owners, new_owners, inputs, operation, payload=None):
                     'details': condition.to_dict(),
                     'uri': condition.condition_uri
                 },
-                'cid': fulfillment['fid']
+                'cid': fulfillment['fid'],
+                'amount': amount
             })
 
     tx = {

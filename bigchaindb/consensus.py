@@ -171,6 +171,14 @@ class BaseConsensusRules(AbstractConsensusRules):
         if not util.validate_fulfillments(transaction):
             raise exceptions.InvalidSignature()
 
+        # Check divisible assets
+        # Also doing some schema validation here. This would probably be handled by a schema validator in the future
+        for condition in transaction['transaction']['conditions']:
+            if not isinstance(condition['amount'], int) or condition['amount'] < 1:
+                raise ValueError('The `amount` needs to be an integer greater then zero')
+            if condition['amount'] > 0:
+                print('divisible')
+
         return transaction
 
     @staticmethod
@@ -207,14 +215,14 @@ class BaseConsensusRules(AbstractConsensusRules):
 
     @staticmethod
     def create_transaction(current_owner, new_owner, tx_input, operation,
-                           payload=None):
+                           payload=None, amount=1):
         """Create a new transaction
 
         Refer to the documentation of ``bigchaindb.util.create_tx``
         """
 
         return util.create_tx(current_owner, new_owner, tx_input, operation,
-                              payload)
+                              payload, amount)
 
     @staticmethod
     def sign_transaction(transaction, private_key, bigchain=None):

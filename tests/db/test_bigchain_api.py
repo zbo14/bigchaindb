@@ -1697,7 +1697,8 @@ class TestCryptoconditions(object):
                 'uri': first_tx_condition.condition.serialize_uri()
             },
             'cid': 0,
-            'new_owners': None
+            'new_owners': None,
+            'amount': 1
         })
         # conditions have been updated, so hash needs updating
         hashlock_tx['id'] = util.get_hash_data(hashlock_tx)
@@ -1729,7 +1730,8 @@ class TestCryptoconditions(object):
                 'uri': first_tx_condition.condition.serialize_uri()
             },
             'cid': 0,
-            'new_owners': None
+            'new_owners': None,
+            'amount': 1
         })
         # conditions have been updated, so hash needs updating
         hashlock_tx['id'] = util.get_hash_data(hashlock_tx)
@@ -1760,7 +1762,8 @@ class TestCryptoconditions(object):
                 'uri': first_tx_condition.condition.serialize_uri()
             },
             'cid': 0,
-            'new_owners': None
+            'new_owners': None,
+            'amount': 1
         })
         # conditions have been updated, so hash needs updating
         hashlock_tx['id'] = util.get_hash_data(hashlock_tx)
