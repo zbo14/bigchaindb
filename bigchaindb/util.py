@@ -633,3 +633,14 @@ def is_genesis_block(block):
     # element in the list so we can safely refer to it
     return block['block']['transactions'][0]['transaction']['operation'] == 'GENESIS'
 
+
+def validate_divisible_assets(bigchain, transaction):
+    for condition in transaction['transaction']['conditions']:
+        # some schema validation here. This would probably be handled by a schema validator in the future
+        if not isinstance(condition['amount'], int) or condition['amount'] < 1:
+            raise ValueError('The `amount` needs to be an integer greater then zero')
+
+    # TODO: additional validation for divisible assets
+    # 1. If its a CREATE transaction we do not need to validate. The output amount can be greater then the
+    #    input amount
+    # 2. If is a TRANSFER transaction the the ouput amount needs to be <= input output amount

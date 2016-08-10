@@ -172,12 +172,7 @@ class BaseConsensusRules(AbstractConsensusRules):
             raise exceptions.InvalidSignature()
 
         # Check divisible assets
-        # Also doing some schema validation here. This would probably be handled by a schema validator in the future
-        for condition in transaction['transaction']['conditions']:
-            if not isinstance(condition['amount'], int) or condition['amount'] < 1:
-                raise ValueError('The `amount` needs to be an integer greater then zero')
-            if condition['amount'] > 0:
-                print('divisible')
+        util.validate_divisible_assets(bigchain, transaction)
 
         return transaction
 
