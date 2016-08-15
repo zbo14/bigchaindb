@@ -628,4 +628,3 @@ def is_genesis_block(block):
     # we cannot have empty blocks, there will always be at least one
     # element in the list so we can safely refer to it
     return block['block']['transactions'][0]['transaction']['operation'] == 'GENESIS'
-
