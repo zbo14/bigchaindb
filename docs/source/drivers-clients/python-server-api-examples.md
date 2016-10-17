@@ -41,7 +41,8 @@ At a high level, a "digital asset" is something which can be represented digital
 In BigchainDB, only the federation nodes are allowed to create digital assets, by doing a special kind of transaction: a `CREATE` transaction.
 
 ```python
-from bigchaindb import crypto
+from bigchaindb_common import crypto
+from bigchaindb.model import Transaction
 
 # Create a test user
 testuser1_priv, testuser1_pub = crypto.generate_key_pair()
@@ -50,14 +51,14 @@ testuser1_priv, testuser1_pub = crypto.generate_key_pair()
 digital_asset_payload = {'msg': 'Hello BigchainDB!'}
 
 # A create transaction uses the operation `CREATE` and has no inputs
-tx = b.create_transaction(b.me, testuser1_pub, None, 'CREATE', payload=digital_asset_payload)
+tx = Transaction.create([b.me], [testuser1_pub], payload=digital_asset_payload)
 
 # All transactions need to be signed by the user creating the transaction
-tx_signed = b.sign_transaction(tx, b.me_private)
+tx_signed = tx.sign([b.me_private])
 
 # Write the transaction to the bigchain.
 # The transaction will be stored in a backlog where it will be validated,
-# included in a block, and written to the bigchain 
+# included in a block, and written to the bigchain
 b.write_transaction(tx_signed)
 ```
 
@@ -66,8 +67,8 @@ b.write_transaction(tx_signed)
 After a couple of seconds, we can check if the transactions was included in the bigchain:
 ```python
 # Retrieve a transaction from the bigchain
-tx_retrieved = b.get_transaction(tx_signed['id'])
-tx_retrieved
+tx_retrieved = b.get_transaction(tx_signed.id)
+tx_retrieved.to_dict()
 ```
 
 ```python
@@ -125,7 +126,7 @@ Note that the current owner (with public key `3LQ5dTiddXymDhNzETB1rEkp4mA7fEV1Qe
 Now that `testuser1` has a digital asset assigned to him, he can transfer it to another user. Transfer transactions require an input. The input will be the transaction id of a digital asset that was assigned to `testuser1`, which in our case is `933cd83a419d2735822a2154c84176a2f419cbd449a74b94e592ab807af23861`.
 
 BigchainDB makes use of the crypto-conditions library to both cryptographically lock and unlock transactions.
-The locking script is refered to as a `condition` and a corresponding `fulfillment` unlocks the condition of the `input_tx`. 
+The locking script is refered to as a `condition` and a corresponding `fulfillment` unlocks the condition of the `input_tx`.
 
 Since a transaction can have multiple outputs with each its own (crypto)condition, each transaction input should also refer to the condition index `cid`.
 
@@ -139,8 +140,8 @@ Since a transaction can have multiple outputs with each its own (crypto)conditio
 testuser2_priv, testuser2_pub = crypto.generate_key_pair()
 
 # Retrieve the transaction with condition id
-tx_retrieved_id = b.get_owned_ids(testuser1_pub).pop()
-tx_retrieved_id
+tx_unspent = b.get_owned_ids(testuser1_pub).pop()
+tx_unspent.to_dict()
 ```
 
 ```python
@@ -151,18 +152,21 @@ tx_retrieved_id
 ```
 
 ```python
+# Get the transaction to spend
+tx_owned = b.get_transaction(tx_unspent.txid)
+
 # Create a transfer transaction
-tx_transfer = b.create_transaction(testuser1_pub, testuser2_pub, tx_retrieved_id, 'TRANSFER')
+tx_transfer = Transaction.transfer(tx_owned.to_inputs(), [testuser2_pub])
 
 # Sign the transaction
-tx_transfer_signed = b.sign_transaction(tx_transfer, testuser1_priv)
+tx_transfer_signed = tx_transfer.sign([testuser1_priv])
 
 # Write the transaction
 b.write_transaction(tx_transfer_signed)
 
 # Check if the transaction is already in the bigchain
-tx_transfer_retrieved = b.get_transaction(tx_transfer_signed['id'])
-tx_transfer_retrieved
+tx_transfer_retrieved = b.get_transaction(tx_transfer_signed.id)
+tx_transfer_retrieved.to_dict()
 ```
 
 ```python
@@ -216,10 +220,10 @@ If we try to create another transaction with the same input as before, the trans
 
 ```python
 # Create another transfer transaction with the same input
-tx_transfer2 = b.create_transaction(testuser1_pub, testuser2_pub, tx_retrieved_id, 'TRANSFER')
+tx_transfer2 = Transaction.transfer(tx_retrieved.to_inputs(), [testuser2_pub])
 
 # Sign the transaction
-tx_transfer_signed2 = b.sign_transaction(tx_transfer2, testuser1_priv)
+tx_transfer_signed2 = tx_transfer2.sign([testuser1_priv])
 
 # Check if the transaction is valid
 b.validate_transaction(tx_transfer_signed2)
@@ -235,17 +239,17 @@ To create a new digital asset with _multiple_ owners, one can simply provide a l
 
 ```python
 # Create a new asset and assign it to multiple owners
-tx_multisig = b.create_transaction(b.me, [testuser1_pub, testuser2_pub], None, 'CREATE')
+tx_multisig = Transaction.create([b.me], [testuser1_pub, testuser2_pub])
 
-# Have the federation node sign the transaction
-tx_multisig_signed = b.sign_transaction(tx_multisig, b.me_private)
+# Sign the transaction
+tx_multisig_signed = tx_multisig.sign([b.me_private])
 
 # Write the transaction
 b.write_transaction(tx_multisig_signed)
 
 # Check if the transaction is already in the bigchain
-tx_multisig_retrieved = b.get_transaction(tx_multisig_signed['id'])
-tx_multisig_retrieved
+tx_multisig_retrieved = b.get_transaction(tx_multisig_signed.id)
+tx_multisig_retrieved.to_dict()
 ```
 
 ```python
@@ -306,7 +310,7 @@ tx_multisig_retrieved
 }
 ```
 
-The asset can be transfered as soon as each of the `owners_after` signs the transaction.
+The asset can be transferred as soon as each of the `owners_after` signs the transaction.
 
 To do so, simply provide a list of all private keys to the signing routine:
 
@@ -314,21 +318,22 @@ To do so, simply provide a list of all private keys to the signing routine:
 # Create a third testuser
 testuser3_priv, testuser3_pub = crypto.generate_key_pair()
 
-# Retrieve the multisig transaction
-tx_multisig_retrieved_id = b.get_owned_ids(testuser2_pub).pop()
+# Retrieve the multisig transaction link
+tx_multisig_unspents = b.get_owned_ids(testuser2_pub).pop()
+tx_multisig_retrieved = b.get_transaction(tx_multisig_unspents.txid)
 
-# Transfer the asset from the 2 owners to the third testuser 
-tx_multisig_transfer = b.create_transaction([testuser1_pub, testuser2_pub], testuser3_pub, tx_multisig_retrieved_id, 'TRANSFER')
+# Transfer the asset from the 2 owners to the third testuser
+tx_multisig_transfer = Transaction.transfer(tx_multisig_retrieved.to_inputs(), [testuser3_pub])
 
 # Sign with both private keys
-tx_multisig_transfer_signed = b.sign_transaction(tx_multisig_transfer, [testuser1_priv, testuser2_priv])
+tx_multisig_transfer_signed = tx_multisig_transfer.sign([testuser1_priv, testuser2_priv])
 
 # Write the transaction
 b.write_transaction(tx_multisig_transfer_signed)
 
 # Check if the transaction is already in the bigchain
-tx_multisig_transfer_retrieved = b.get_transaction(tx_multisig_transfer_signed['id'])
-tx_multisig_transfer_retrieved
+tx_multisig_transfer_retrieved = b.get_transaction(tx_multisig_transfer_signed.id)
+tx_multisig_transfer_retrieved.to_dict()
 ```
 
 ```python
@@ -379,7 +384,7 @@ tx_multisig_transfer_retrieved
 
 With BigchainDB it is possible to send multiple assets to someone in a single transfer.
 
-The transaction will create a `fulfillment` - `condition` pair for each input, which can be refered to by `fid` and `cid` respectively.
+The transaction will create a `fulfillment` - `condition` pair for each input, which can be referred to by `fid` and `cid` respectively.
 
 <p align="center">
   <img width="70%" height="70%" src ="../_static/tx_multi_condition_multi_fulfillment_v1.png" />
@@ -388,26 +393,32 @@ The transaction will create a `fulfillment` - `condition` pair for each input, w
 ```python
 # Create some assets for bulk transfer
 for i in range(3):
-    tx_mimo_asset = b.create_transaction(b.me, testuser1_pub, None, 'CREATE')
-    tx_mimo_asset_signed = b.sign_transaction(tx_mimo_asset, b.me_private)
+    tx_mimo_asset = Transaction.create([b.me], [testuser1_pub])
+    tx_mimo_asset_signed = tx_mimo_asset.sign([b.me_private])
     b.write_transaction(tx_mimo_asset_signed)
 
-# Wait until they appear on the bigchain and get the inputs
-owned_mimo_inputs = b.get_owned_ids(testuser1_pub)
+# Wait until they appear on the bigchain and retrieve the transactions
+owned_mimo_unspents  = b.get_owned_ids(testuser1_pub)
 
 # Check the number of assets
 print(len(owned_mimo_inputs))
 
-# Create a signed TRANSFER transaction with all the assets
-tx_mimo = b.create_transaction(testuser1_pub, testuser2_pub, owned_mimo_inputs, 'TRANSFER')
-tx_mimo_signed = b.sign_transaction(tx_mimo, testuser1_priv)
+# get the transactions from the unspents
+owned_mimo_transactions = [b.get_transaction(unspent.to_inputs() for unspent in owned_mimo_unspents]
+# and flatten the list of inputs
+owned_mimo_transactions = sum(owned_mimo_transactions, [])
+
+# Create a signed TRANSFER transaction with all the assets and assign all of them
+# to testuser2_pub
+tx_mimo = Transaction.transfer(owned_mimo_transactions, len(owned_mimo_transactions) * [[testuser2_pub]])
+tx_mimo_signed = tx_mimo.sign([testuser1_priv])
 
 # Write the transaction
 b.write_transaction(tx_mimo_signed)
 
 # Check if the transaction is already in the bigchain
-tx_mimo_retrieved = b.get_transaction(tx_mimo_signed['id'])
-tx_mimo_retrieved
+tx_mimo_retrieved = b.get_transaction(tx_mimo_signed.id)
+tx_mimo_retrieved.to_dict()
 ```
 
 ```python
@@ -512,7 +523,7 @@ tx_mimo_retrieved
 
 ### Introduction
 
-Crypto-conditions provide a mechanism to describe a signed message such that multiple actors in a distributed system can all verify the same signed message and agree on whether it matches the description. 
+Crypto-conditions provide a mechanism to describe a signed message such that multiple actors in a distributed system can all verify the same signed message and agree on whether it matches the description.
 
 This provides a useful primitive for event-based systems that are distributed on the Internet since we can describe events in a standard deterministic manner (represented by signed messages) and therefore define generic authenticated event handlers.
 
@@ -526,56 +537,38 @@ Implementations of the crypto-conditions are available in [Python](https://githu
 Threshold conditions introduce multi-signatures, m-of-n signatures or even more complex binary Merkle trees to BigchainDB.
 
 Setting up a generic threshold condition is a bit more elaborate than regular transaction signing but allow for flexible signing between multiple parties or groups.
- 
+
 The basic workflow for creating a more complex cryptocondition is the following:
 
 1. Create a transaction template that include the public key of all (nested) parties as `owners_after`
 2. Set up the threshold condition using the [cryptocondition library](https://github.com/bigchaindb/cryptoconditions)
 3. Update the condition and hash in the transaction template
 
-We'll illustrate this by a threshold condition where 2 out of 3 `owners_after` need to sign the transaction:
+We'll illustrate this by a threshold condition where 3 out of 3 `owners_after` need to sign the transaction:
 
 ```python
-import copy
-
-import cryptoconditions as cc
-from bigchaindb import util, crypto
-
 # Create some new testusers
 thresholduser1_priv, thresholduser1_pub = crypto.generate_key_pair()
 thresholduser2_priv, thresholduser2_pub = crypto.generate_key_pair()
 thresholduser3_priv, thresholduser3_pub = crypto.generate_key_pair()
 
 # Retrieve the last transaction of testuser2
-tx_retrieved_id = b.get_owned_ids(testuser2_pub).pop()
+tx_unspent = b.get_owned_ids(testuser2_pub).pop()
+tx_owned = b.get_transaction(tx_unspent.txid)
 
-# Create a base template for a 1-input/2-output transaction
-threshold_tx = b.create_transaction(testuser2_pub, [thresholduser1_pub, thresholduser2_pub, thresholduser3_pub], tx_retrieved_id, 'TRANSFER')
-
-# Create a Threshold Cryptocondition
-threshold_condition = cc.ThresholdSha256Fulfillment(threshold=2)
-threshold_condition.add_subfulfillment(cc.Ed25519Fulfillment(public_key=thresholduser1_pub))
-threshold_condition.add_subfulfillment(cc.Ed25519Fulfillment(public_key=thresholduser2_pub))
-threshold_condition.add_subfulfillment(cc.Ed25519Fulfillment(public_key=thresholduser3_pub))
-
-# Update the condition in the newly created transaction
-threshold_tx['transaction']['conditions'][0]['condition'] = {
-    'details': threshold_condition.to_dict(),
-    'uri': threshold_condition.condition.serialize_uri()
-}
-
-# Conditions have been updated, so the transaction hash (ID) needs updating
-threshold_tx['id'] = util.get_hash_data(threshold_tx)
-
+# Create a threshold condition with a 3 out of 3 threshold
+threshold_tx = Transaction.transfer(tx_owned.to_inputs(), [[thresholduser1_pub,
+                                                             thresholduser2_pub,
+                                                             thresholduser3_pub]]
 # Sign the transaction
-threshold_tx_signed = b.sign_transaction(threshold_tx, testuser2_priv)
+threshold_tx_signed = threshold_tx.sign([testuser2_priv])
 
 # Write the transaction
 b.write_transaction(threshold_tx_signed)
 
 # Check if the transaction is already in the bigchain
-tx_threshold_retrieved = b.get_transaction(threshold_tx_signed['id'])
-tx_threshold_retrieved
+tx_threshold_retrieved = b.get_transaction(threshold_tx_signed.id)
+tx_threshold_retrieved.to_dict()
 ```
 
 ```python
@@ -614,7 +607,7 @@ tx_threshold_retrieved
                                 "weight":1
                             }
                         ],
-                        "threshold":2,
+                        "threshold":3,
                         "type":"fulfillment",
                         "type_id":2
                     },
@@ -648,13 +641,42 @@ tx_threshold_retrieved
 }
 ```
 
-The transaction can now be transfered by fulfilling the threshold condition.
+The transaction can now be transferred by fulfilling the threshold condition.
 
-The fulfillment involves:
+
+#### Custom Thresholds
+
+Additionally, the Transaction model of BigchainDB allows to create ThresholdSha256 conditions with a customizable threshold.
+In our previous example, we've created a 3 out of 3 threshold condition. However, in many cases a user might want to create
+a X out of Y threshold condition.
+
+Instead of simply submitting a list `owners_after` to `Transaction.transfer`, we can submit a tuple that specifies as a second
+parameter, the threshold, we'd like to specify for the ThresholdSha256 condition:
+
+```python
+# Create a ThresholdSha256 condition with a 2 out of 3 threshold.
+# Note that instead of submitting a list as the second argument to
+# `Transaction.transfer`, we now submit a `tuple`, where the first position is
+# the `owners_after` and the second position is the `threshold`, we'd like to set.
+threshold_tx = Transaction.transfer(tx_owned.to_inputs(), [([thresholduser1_pub,
+                                                             thresholduser2_pub,
+                                                             thresholduser3_pub], 2)]
+# Sign the transaction
+threshold_tx_signed = threshold_tx.sign([testuser2_priv])
+
+
+# Write the transaction
+b.write_transaction(threshold_tx_signed)
+```
+
+
+#### Transferring a Threshold Condition
+
+We continue with transferring out custom-made 2 out of 3 ThresholdSha256 Condition.
+Creating a fulfillment for it involves the following:
 
 1. Create a transaction template that include the public key of all (nested) parties as `owners_before`
-2. Parsing the threshold condition into a fulfillment using the [cryptocondition library](https://github.com/bigchaindb/cryptoconditions)
-3. Signing all necessary subfulfillments and updating the fulfillment field in the transaction
+2. Signing all necessary subfulfillments (in our case only two of them)
 
 
 ```python
@@ -662,46 +684,38 @@ The fulfillment involves:
 thresholduser4_priv, thresholduser4_pub = crypto.generate_key_pair()
 
 # Retrieve the last transaction of thresholduser1_pub
-tx_retrieved_id = b.get_owned_ids(thresholduser1_pub).pop()
+tx_unspent = b.get_owned_ids(thresholduser1_pub).pop()
+tx_owned = b.get_transaction(tx_unspent.id)
 
-# Create a base template for a 2-input/1-output transaction
-threshold_tx_transfer = b.create_transaction([thresholduser1_pub, thresholduser2_pub, thresholduser3_pub], thresholduser4_pub, tx_retrieved_id, 'TRANSFER')
+# Create a base template for a transfer transaction
+threshold_tx_transfer = Transaction.transfer(tx_owned.to_inputs(), [[thresholduser4_pub]])
 
-# Parse the threshold cryptocondition
-threshold_fulfillment = cc.Fulfillment.from_dict(threshold_tx['transaction']['conditions'][0]['condition']['details'])
+# At this point, we can unfortunately not sign partially by simply calling
+# `Transaction.sign`. We're working on it though!
+
+# Sign and add the subconditions until threshold of 2 is reached
+threshold_fulfillment = threshold_tx_transfer.fulfillments[0]
 
 subfulfillment1 = threshold_fulfillment.get_subcondition_from_vk(thresholduser1_pub)[0]
 subfulfillment2 = threshold_fulfillment.get_subcondition_from_vk(thresholduser2_pub)[0]
 subfulfillment3 = threshold_fulfillment.get_subcondition_from_vk(thresholduser3_pub)[0]
 
+message = str(threshold_tx_transfer)
+subfulfillment1.sign(message, thresholduser1_priv)
+subfulfillment2.sign(message, thresholduser2_priv)
 
-# Get the fulfillment message to sign
-threshold_tx_fulfillment_message = util.get_fulfillment_message(threshold_tx_transfer,
-                                                                threshold_tx_transfer['transaction']['fulfillments'][0],
-                                                                serialized=True)
-
-# Clear the subconditions of the threshold fulfillment, they will be added again after signing
-threshold_fulfillment.subconditions = []
-
-# Sign and add the subconditions until threshold of 2 is reached
-subfulfillment1.sign(threshold_tx_fulfillment_message, crypto.SigningKey(thresholduser1_priv))
-threshold_fulfillment.add_subfulfillment(subfulfillment1)
-subfulfillment2.sign(threshold_tx_fulfillment_message, crypto.SigningKey(thresholduser2_priv))
-threshold_fulfillment.add_subfulfillment(subfulfillment2)
-
-# Add remaining (unfulfilled) fulfillment as a condition
+# Remove the unfulfilled fulfillment and readd it as a condition
+threshold_fulfillment.subconditions.remove(subfulfillment3)
 threshold_fulfillment.add_subcondition(subfulfillment3.condition)
 
-# Update the fulfillment
-threshold_tx_transfer['transaction']['fulfillments'][0]['fulfillment'] = threshold_fulfillment.serialize_uri()
-
 # Optional validation checks
-assert threshold_fulfillment.validate(threshold_tx_fulfillment_message) == True
-assert b.validate_fulfillments(threshold_tx_transfer) == True
+# `fulfillments_valid` checks against the previous transactions' conditions,
+# which is why we have to provide them as a parameter
+assert threshold_tx_transfer.fulfillments_valid(tx_owned.conditions)
 assert b.validate_transaction(threshold_tx_transfer)
 
 b.write_transaction(threshold_tx_transfer)
-threshold_tx_transfer
+threshold_tx_transfer.to_dict()
 ```
 
 ```python
@@ -762,32 +776,16 @@ A federation node can create an asset with a hash-lock condition and no `owners_
 
 ```python
 # Create a hash-locked asset without any owners_after
-hashlock_tx = b.create_transaction(b.me, None, None, 'CREATE')
-
-# Define a secret that will be hashed - fulfillments need to guess the secret
-secret = b'much secret! wow!'
-first_tx_condition = cc.PreimageSha256Fulfillment(preimage=secret)
-
-# The conditions list is empty, so we need to append a new condition
-hashlock_tx['transaction']['conditions'].append({
-    'condition': {
-        'uri': first_tx_condition.condition.serialize_uri()
-    },
-    'cid': 0,
-    'owners_after': None
-})
-
-# Conditions have been updated, so the hash needs updating
-hashlock_tx['id'] = util.get_hash_data(hashlock_tx)
+hashlock_tx = Transaction.create(b.me, None, secret=b'wow, much secret!')
 
 # The asset needs to be signed by the owner_before
-hashlock_tx_signed = b.sign_transaction(hashlock_tx, b.me_private)
+hashlock_tx_signed = hashlock_tx.sign([b.me_private])
 
 # Some validations
 assert b.validate_transaction(hashlock_tx_signed) == hashlock_tx_signed
 
 b.write_transaction(hashlock_tx_signed)
-hashlock_tx_signed
+hashlock_tx_signed.to_dict()
 ```
 
 ```python
@@ -824,27 +822,26 @@ hashlock_tx_signed
 In order to redeem the asset, one needs to create a fulfillment with the correct secret:
 
 ```python
+from bigchaindb_common.transaction import Fulfillment, TransactionLink
+
 hashlockuser_priv, hashlockuser_pub = crypto.generate_key_pair()
 
-# Create hashlock fulfillment tx
-hashlock_fulfill_tx = b.create_transaction(None, hashlockuser_pub, {'txid': hashlock_tx['id'], 'cid': 0}, 'TRANSFER')
-
+# Create hashlock fulfillment
+hashlock_tx_link = TransactionLink(hashlock.txid, 0)
 # Provide a wrong secret
-hashlock_fulfill_tx_fulfillment = cc.PreimageSha256Fulfillment(preimage=b'')
-hashlock_fulfill_tx['transaction']['fulfillments'][0]['fulfillment'] = \
-    hashlock_fulfill_tx_fulfillment.serialize_uri()
-    
-assert b.is_valid_transaction(hashlock_fulfill_tx) == False
+hashlock_fulfillment = Fulfillment(cc.PreimageSha256Fulfillment(preimage=b''), None, hashlock_tx_link)
 
-# Provide the right secret
-hashlock_fulfill_tx_fulfillment = cc.PreimageSha256Fulfillment(preimage=secret)
-hashlock_fulfill_tx['transaction']['fulfillments'][0]['fulfillment'] = \
-    hashlock_fulfill_tx_fulfillment.serialize_uri()
+hashlock_fulfill_tx = Transaction.transfer(hashlock_fulfillment, hashlockuser_priv)
+assert b.is_valid_transaction(hashlock_fulfill_tx) is False
 
-assert b.validate_transaction(hashlock_fulfill_tx) == hashlock_fulfill_tx
+# Provide the correct secret
+hashlock_fulfillment = Fulfillment(cc.PreimageSha256Fulfillment(preimage=b'wow, much secret!'), None, hashlock_tx_link)
+# Replace wrong secret, with correct one
+hashlock_fulfill_tx.fulfillments[0] = hashlock_fulfillment
+assert b.is_valid_transaction(hashlock_fulfill_tx) is True
 
 b.write_transaction(hashlock_fulfill_tx)
-hashlock_fulfill_tx
+hashlock_fulfill_tx.to_dict()
 ```
 
 ```python
@@ -893,7 +890,7 @@ hashlock_fulfill_tx
 Timeout conditions allow assets to expire after a certain time.
 The primary use case of timeout conditions is to enable [Escrow](#escrow).
 
-The condition can only be fulfilled before the expiry time. 
+The condition can only be fulfilled before the expiry time.
 Once expired, the asset is lost and cannot be fulfilled by anyone.
 
 __Note__: The timeout conditions are BigchainDB-specific and not (yet) supported by the ILP standard.
@@ -901,35 +898,26 @@ __Note__: The timeout conditions are BigchainDB-specific and not (yet) supported
 __Caveat__: The times between nodes in a BigchainDB federation may (and will) differ slightly. In this case, the majority of the nodes will decide.
 
 ```python
-# Create a timeout asset without any owners_after
-tx_timeout = b.create_transaction(b.me, None, None, 'CREATE')
+from bigchaindb_common.transaction import Condition
 
-# Set expiry time - the asset needs to be transfered before expiration
+ffill = Fulfillment(cc.Ed25519Fulfillment(public_key=b.me), [b.me])
+
 time_sleep = 12
 time_expire = str(float(util.timestamp()) + time_sleep)  # 12 secs from now
 condition_timeout = cc.TimeoutFulfillment(expire_time=time_expire)
+cond = Condition(condition_timeout)
 
-# The conditions list is empty, so we need to append a new condition
-tx_timeout['transaction']['conditions'].append({
-    'condition': {
-        'details': condition_timeout.to_dict(),
-        'uri': condition_timeout.condition.serialize_uri()
-    },
-    'cid': 0,
-    'owners_after': None
-})
-
-# Conditions have been updated, so the hash needs updating
-tx_timeout['id'] = util.get_hash_data(tx_timeout)
+# Create transaction with custom timeout condition
+tx_timeout = Transaction('CREATE', [ffill], [cond])
 
 # The asset needs to be signed by the owner_before
-tx_timeout_signed = b.sign_transaction(tx_timeout, b.me_private)
+tx_timeout_signed = tx_timeout.sign([b.me_private])
 
 # Some validations
 assert b.validate_transaction(tx_timeout_signed) == tx_timeout_signed
 
 b.write_transaction(tx_timeout_signed)
-tx_timeout_signed
+tx_timeout_signed.to_dict()
 ```
 
 ```python
@@ -975,12 +963,7 @@ The following demonstrates that the transaction invalidates once the timeout occ
 from time import sleep
 
 # Create a timeout fulfillment tx
-tx_timeout_transfer = b.create_transaction(None, testuser1_pub, {'txid': tx_timeout['id'], 'cid': 0}, 'TRANSFER')
-
-# Parse the timeout condition and create the corresponding fulfillment
-timeout_fulfillment = cc.Fulfillment.from_dict(
-    tx_timeout['transaction']['conditions'][0]['condition']['details'])
-tx_timeout_transfer['transaction']['fulfillments'][0]['fulfillment'] = timeout_fulfillment.serialize_uri()
+tx_timeout_transfer = Transaction.transfer(tx_timeout.to_inputs(), testuser1_pub)
 
 # No need to sign transaction, like with hashlocks
 
@@ -1009,7 +992,7 @@ tx_timeout valid: False (-3s to timeout)
 
 Escrow is a mechanism for conditional release of assets.
 
-This means that a the assets are locked up by a trusted party until an `execute` condition is presented. In order not to tie up the assets forever, the escrow foresees an `abort` condition, which is typically an expiry time.
+This means that the assets are locked up by a trusted party until an `execute` condition is presented. In order not to tie up the assets forever, the escrow foresees an `abort` condition, which is typically an expiry time.
 
 BigchainDB and cryptoconditions provides escrow out-of-the-box, without the need of a trusted party.
 
@@ -1023,11 +1006,11 @@ The logic for switching between `execute` and `abort` conditions is conceptually
 
 ```python
 if timeout_condition.validate(utcnow()):
-    execute_fulfillment.validate(msg) == True
-    abort_fulfillment.validate(msg) == False
+    execute_fulfillment.validate(msg) is True
+    abort_fulfillment.validate(msg) is False
 else:
-    execute_fulfillment.validate(msg) == False
-    abort_fulfillment.validate(msg) == True
+    execute_fulfillment.validate(msg) is False
+    abort_fulfillment.validate(msg) is True
 ```
 
 The above switch can be implemented as follows using threshold cryptoconditions:
@@ -1050,10 +1033,12 @@ The following code snippet shows how to create an escrow condition:
 
 ```python
 # Retrieve the last transaction of testuser2_pub (or create a new asset)
-tx_retrieved_id = b.get_owned_ids(testuser2_pub).pop()
+tx_unspent = b.get_owned_ids(testuser2_pub).pop()
+tx_owned = b.get_transaction(tx_unspent.id)
 
 # Create a base template with the execute and abort address
-tx_escrow = b.create_transaction(testuser2_pub, [testuser2_pub, testuser1_pub], tx_retrieved_id, 'TRANSFER')
+ffill = Fulfillment(cc.Ed25519Fulfillment(public_key=testuser2_pub), [testuser2_pub])
+tx_escrow = Transaction('TRANSFER', [ffill])
 
 # Set expiry time - the execute address needs to fulfill before expiration
 time_sleep = 12
@@ -1077,23 +1062,18 @@ condition_abort.add_subfulfillment(cc.Ed25519Fulfillment(public_key=testuser2_pu
 condition_abort.add_subfulfillment(condition_timeout_inverted)
 condition_escrow.add_subfulfillment(condition_abort)
 
-# Update the condition in the newly created transaction
-tx_escrow['transaction']['conditions'][0]['condition'] = {
-    'details': condition_escrow.to_dict(),
-    'uri': condition_escrow.condition.serialize_uri()
-}
-
-# Conditions have been updated, so the hash needs updating
-tx_escrow['id'] = util.get_hash_data(tx_escrow)
+cond = Condition(condition_escrow, [testuser2_pub, testuser1_pub])
+# Add the condition to our transaction template
+tx_escrow.add_condition(cond)
 
 # The asset needs to be signed by the owner_before
-tx_escrow_signed = b.sign_transaction(tx_escrow, testuser2_priv)
+tx_escrow_signed = tx_escrow.sign([testuser2_priv])
 
 # Some validations
 assert b.validate_transaction(tx_escrow_signed) == tx_escrow_signed
 
 b.write_transaction(tx_escrow_signed)
-tx_escrow_signed
+tx_escrow_signed.to_dict()
 ```
 
 ```python
@@ -1206,30 +1186,26 @@ We'll illustrate this by example.
 In the case of `testuser1`, we create the `execute` fulfillment:
 
 ```python
-# Create a base template for execute fulfillment
-tx_escrow_execute = b.create_transaction([testuser2_pub, testuser1_pub], testuser1_pub, {'txid': tx_escrow_signed['id'], 'cid': 0}, 'TRANSFER')
+# Create a basic condition
+cond = Condition.generate([testuser1_pub])
 
-# Parse the Escrow cryptocondition
-escrow_fulfillment = cc.Fulfillment.from_dict(
-    tx_escrow['transaction']['conditions'][0]['condition']['details'])
+# Create a base template for execute fulfillment
+tx_escrow_execute = Transaction('TRANSFER', [], [cond])
+
+# Get the Escrow cryptocondition
+escrow_fulfillment = tx_escrow.condition[0].fulfillment
 
 subfulfillment_testuser1 = escrow_fulfillment.get_subcondition_from_vk(testuser1_pub)[0]
 subfulfillment_testuser2 = escrow_fulfillment.get_subcondition_from_vk(testuser2_pub)[0]
 subfulfillment_timeout = escrow_fulfillment.subconditions[0]['body'].subconditions[1]['body']
 subfulfillment_timeout_inverted = escrow_fulfillment.subconditions[1]['body'].subconditions[1]['body']
 
-# Get the fulfillment message to sign
-tx_escrow_execute_fulfillment_message = \
-    util.get_fulfillment_message(tx_escrow_execute,
-                                 tx_escrow_execute['transaction']['fulfillments'][0],
-                                 serialized=True)
-
 # Clear the subconditions of the escrow fulfillment
 escrow_fulfillment.subconditions = []
 
 # Fulfill the execute branch
 fulfillment_execute = cc.ThresholdSha256Fulfillment(threshold=2)
-subfulfillment_testuser1.sign(tx_escrow_execute_fulfillment_message, crypto.SigningKey(testuser1_priv))
+subfulfillment_testuser1.sign(str(tx_escrow_execute), crypto.SigningKey(testuser1_priv))
 fulfillment_execute.add_subfulfillment(subfulfillment_testuser1)
 fulfillment_execute.add_subfulfillment(subfulfillment_timeout)
 escrow_fulfillment.add_subfulfillment(fulfillment_execute)
@@ -1241,30 +1217,28 @@ condition_abort.add_subfulfillment(subfulfillment_timeout_inverted)
 escrow_fulfillment.add_subcondition(condition_abort.condition)  # Adding only the condition here
 
 # Update the execute transaction with the fulfillment
-tx_escrow_execute['transaction']['fulfillments'][0]['fulfillment'] = escrow_fulfillment.serialize_uri()
+tx_unspent = TransactionLink(tx_escrow_signed, 0)
+ffill = Fulfillment(escrow_fulfillment, [testuser2_pub, testuser1_pub], tx_unspent)
+tx_escrow_execute.add_fulfillment(ffill)
 ```
 
 In the case of `testuser2`, we create the `abort` fulfillment:
 
 ```python
-# Create a base template for execute fulfillment
-tx_escrow_abort = b.create_transaction([testuser2_pub, testuser1_pub], testuser2_pub, {'txid': tx_escrow_signed['id'], 'cid': 0}, 'TRANSFER')
+# Create a basic condition
+cond = Condition.generate([testuser2_pub])
 
-# Parse the threshold cryptocondition
-escrow_fulfillment = cc.Fulfillment.from_dict(
-    tx_escrow['transaction']['conditions'][0]['condition']['details'])
+# Create a base template for abort fulfillment
+tx_escrow_abort = Transaction('TRANSFER', [], [cond])
+
+# Get the Escrow cryptocondition
+escrow_fulfillment = tx_escrow.condition[0].fulfillment
 
 subfulfillment_testuser1 = escrow_fulfillment.get_subcondition_from_vk(testuser1_pub)[0]
 subfulfillment_testuser2 = escrow_fulfillment.get_subcondition_from_vk(testuser2_pub)[0]
 subfulfillment_timeout = escrow_fulfillment.subconditions[0]['body'].subconditions[1]['body']
 subfulfillment_timeout_inverted = escrow_fulfillment.subconditions[1]['body'].subconditions[1]['body']
 
-# Get the fulfillment message to sign
-tx_escrow_abort_fulfillment_message = \
-    util.get_fulfillment_message(tx_escrow_abort,
-                                 tx_escrow_abort['transaction']['fulfillments'][0],
-                                 serialized=True)
-                                 
 # Clear the subconditions of the escrow fulfillment
 escrow_fulfillment.subconditions = []
 
@@ -1276,13 +1250,15 @@ escrow_fulfillment.add_subcondition(condition_execute.condition) # Adding only t
 
 # Fulfill the abort branch
 fulfillment_abort = cc.ThresholdSha256Fulfillment(threshold=2)
-subfulfillment_testuser2.sign(tx_escrow_abort_fulfillment_message, crypto.SigningKey(testuser2_priv))
+subfulfillment_testuser2.sign(str(tx_escrow_abort), crypto.SigningKey(testuser2_priv))
 fulfillment_abort.add_subfulfillment(subfulfillment_testuser2)
 fulfillment_abort.add_subfulfillment(subfulfillment_timeout_inverted)
 escrow_fulfillment.add_subfulfillment(fulfillment_abort)
 
 # Update the abort transaction with the fulfillment
-tx_escrow_abort['transaction']['fulfillments'][0]['fulfillment'] = escrow_fulfillment.serialize_uri()
+tx_unspent = TransactionLink(tx_escrow_signed, 0)
+ffill = Fulfillment(escrow_fulfillment, [testuser2_pub, testuser1_pub], tx_unspent)
+tx_escrow_abort.add_fulfillment(ffill)
 ```
 
 The following demonstrates that the transaction validation switches once the timeout occurs:
