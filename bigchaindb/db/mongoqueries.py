@@ -22,13 +22,20 @@ class MongoDBBackend:
         return self.conn[self.dbname]['votes'].insert_one(vote)
 
     def write_block(self, block):
-        return self.conn[self.dbname]['bigchain'].insert_one(r.json(block.to_str()))
+        return self.conn[self.dbname]['bigchain'].insert_one(block.to_dict())
 
-    def create_genesis_block(self):
-        blocks_count = self.connection.run(
-                r.table('bigchain', read_mode=self.read_mode)
-                .count())
+    def genesis_block_exists(self):
+        return self.conn[self.dbname]['bigchain'].count() > 0
 
+    def search_block_election_on_index(self, value, index):
+        return self.conn[self.dbname]['bigchain']\
+                .find({index: value},
+                       projection={'votes',
+                                   'id',
+                                   'block.voters'})
+
+    def get_votes_on_block(self, block_id):
+        return self.conn[self.dbname]['votes'].find
 
     def get_transaction(self, txid, include_status=False):
         if validity:
