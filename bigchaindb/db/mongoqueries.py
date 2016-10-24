@@ -13,24 +13,16 @@ class MongoDBBackend:
             self._conn = self.reconnect()
         return self._conn
 
-    def write_transaction(self, signed_transaction, durability='soft'):
+    def write_transaction(self, signed_transaction):
         # write to the backlog
-        response = self.connection.run(
-                r.table('backlog')
-                .insert(signed_transaction, durability=durability))
-
+        return self.conn[self.dbname]['backlog'].insert_one(signed_transaction)
 
     def write_vote(self, vote):
         """Write the vote to the database."""
+        return self.conn[self.dbname]['votes'].insert_one(vote)
 
-        self.connection.run(
-                r.table('votes')
-                .insert(vote))
-
-    def write_block(self, block, durability='soft'):
-        self.connection.run(
-                r.table('bigchain')
-                .insert(r.json(block.to_str()), durability=durability))
+    def write_block(self, block):
+        return self.conn[self.dbname]['bigchain'].insert_one(r.json(block.to_str()))
 
     def create_genesis_block(self):
         blocks_count = self.connection.run(
