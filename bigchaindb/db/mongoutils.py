@@ -97,6 +97,8 @@ def create_table(conn, dbname, table_name):
 
 def create_bigchain_secondary_index(conn, dbname):
     logger.info('Create `bigchain` secondary index.')
+    # to select blocks by id 
+    conn[dbname]['bigchain'].create_index('id', name='block_id')
     # to order blocks by timestamp
     conn[dbname]['bigchain'].create_index('timestamp', ASCENDING,
                                       name='block_timestamp')
@@ -123,6 +125,10 @@ def create_backlog_secondary_index(conn, dbname):
 
 def create_votes_secondary_index(conn, dbname):
     logger.info('Create `votes` secondary index.')
+    # index on block id to quickly poll
+    conn[dbname]['votes'].create_index('vote.voting_for_block',
+                                       name='voting_for')
+    # is the first index redundant then?
     # compound index to order votes by block id and node
     conn[dbname]['votes'].create_index(['vote.voting_for_block',
                                         'node_pubkey'], name='block_and_voter')

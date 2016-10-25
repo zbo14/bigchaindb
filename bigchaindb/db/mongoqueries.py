@@ -35,7 +35,27 @@ class MongoDBBackend:
                                    'block.voters'})
 
     def get_votes_on_block(self, block_id):
-        return self.conn[self.dbname]['votes'].find
+        return self.conn[self.dbname]['votes'].find({'vote.voting_for_block':
+                                                     block_id})
+
+    def transaction_exists(self, transaction_id):
+        if self.conn[self.dbname]['bigchain']\
+           .find_one({'block.transactions.id':
+                      transaction_id}):
+            return True
+        else:
+            return False
+
+    def get_transaction_from_block(self, block_id, tx_id):
+        # this is definitely wrong, but it's something like this
+        return self.conn[self.dbname].find_one({'id': block_id,
+                                                'block.transactions.id': tx_id})
+
+    def get_tx_by_metadata_id():
+        pass
+
+    def get_txs_by_asset_id():
+        pass
 
     def get_transaction(self, txid, include_status=False):
         if validity:
