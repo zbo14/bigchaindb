@@ -66,7 +66,8 @@ class MongoDBBackend:
 
     def get_owned_ids(self, owner):
         return self.conn[self.dbname]['bigchain']. \
-                find({'block.transactions.transaction.conditions.owners_after'})
+                find({'block.transactions.transaction.conditions.owners_after':
+                     owner})
         response = self.connection.run(
                 r.table('bigchain', read_mode=self.read_mode)
                 .concat_map(lambda doc: doc['block']['transactions'])
