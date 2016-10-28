@@ -100,17 +100,24 @@ def create_bigchain_secondary_index(conn, dbname):
     # to select blocks by id 
     conn[dbname]['bigchain'].create_index('id', name='block_id')
     # to order blocks by timestamp
-    conn[dbname]['bigchain'].create_index('timestamp', ASCENDING,
+    conn[dbname]['bigchain'].create_index('block.timestamp', ASCENDING,
                                       name='block_timestamp')
     # to query the bigchain for a transaction id, this field is unique
-    conn[dbname]['bigchain'].create_index('transactions.id',
+    conn[dbname]['bigchain'].create_index('block.transactions.id',
                                       name='transaction_id', unique=True)
     # secondary index for payload data by UUID, this field is unique
-    conn[dbname]['bigchain'].create_index('transactions.transaction.metadata.id',
-                                      name='metadata_id', unique=True)
+    conn[dbname]['bigchain'] \
+            .create_index('block.transactions.transaction.metadata.id',
+                          name='metadata_id', unique=True)
     # secondary index for asset uuid, this field is unique
-    conn[dbname]['bigchain'].create_index('transactions.transaction.metadata.id',
-                                      name='asset_id', unique=True)
+    conn[dbname]['bigchain'] \
+            .create_index('block.transactions.transaction.asset.id',
+                          name='asset_id', unique=True)
+    # compound index on fulfillment and transactions id
+    conn[dbname]['bigchain'] \
+            .create_index(['block.transactions.transaction.fulfillments.txid',
+                           'block.transactions.transaction.fulfillments.cid'],
+                         name='tx_and_fulfillment')
 
 def create_backlog_secondary_index(conn, dbname):
     logger.info('Create `backlog` secondary index.')

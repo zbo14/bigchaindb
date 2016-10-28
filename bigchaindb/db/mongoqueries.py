@@ -51,11 +51,28 @@ class MongoDBBackend:
         return self.conn[self.dbname].find_one({'id': block_id,
                                                 'block.transactions.id': tx_id})
 
-    def get_tx_by_metadata_id():
-        pass
+    def get_tx_by_metadata_id(self, metadata_id):
+        return self.conn[self.dbname]['bigchain']. \
+            find({'block.transactions.transaction.metadata.id': metadata_id})
 
-    def get_txs_by_asset_id():
-        pass
+    def get_txs_by_asset_id(self, asset_id):
+        return self.conn[self.dbname]['bigchain']. \
+            find({'block.transaction.transaction.asset.id': asset_id})
+
+    def get_tx_by_fulfillment(self, txid, cid):
+        return self.conn[self.dbname]['bigchain']. \
+            find({'block.transactions.transaction.fulfillments.txid': txid,
+                  'block.transactions.transaction.fulfillments.cid': cid})
+
+    def get_owned_ids(self, owner):
+        return self.conn[self.dbname]['bigchain']. \
+                find({'block.transactions.transaction.conditions.owners_after'})
+        response = self.connection.run(
+                r.table('bigchain', read_mode=self.read_mode)
+                .concat_map(lambda doc: doc['block']['transactions'])
+                .filter(lambda tx: tx['transaction']['conditions']
+                    .contains(lambda c: c['owners_after']
+                        .contains(owner))))
 
     def get_transaction(self, txid, include_status=False):
         if validity:
@@ -88,13 +105,6 @@ class MongoDBBackend:
                 .filter(lambda transaction: transaction['transaction']['fulfillments']
                     .contains(lambda fulfillment: fulfillment['input'] == {'txid': txid, 'cid': cid})))
 
-    def get_owned_ids(self, owner):
-        response = self.connection.run(
-                r.table('bigchain', read_mode=self.read_mode)
-                .concat_map(lambda doc: doc['block']['transactions'])
-                .filter(lambda tx: tx['transaction']['conditions']
-                    .contains(lambda c: c['owners_after']
-                        .contains(owner))))
 
 
 
