@@ -20,13 +20,6 @@ def test_asset_transfer(b, user_vk, user_sk):
 def test_validate_bad_asset_creation(b, user_vk):
     from bigchaindb.models import Transaction
 
-    # `divisible` needs to be a boolean
-    tx = Transaction.create([b.me], [user_vk])
-    tx.asset.divisible = 1
-    tx_signed = tx.sign([b.me_private])
-    with pytest.raises(TypeError):
-        tx_signed.validate(b)
-
     # `refillable` needs to be a boolean
     tx = Transaction.create([b.me], [user_vk])
     tx.asset.refillable = 1
@@ -59,7 +52,6 @@ def test_validate_bad_asset_creation(b, user_vk):
 
     tx = b.create_transaction(b.me, user_vk, None, 'CREATE')
     tx['transaction']['conditions'][0]['amount'] = 2
-    tx['transaction']['asset'].update({'divisible': False})
     tx['id'] = get_hash_data(tx['transaction'])
     tx_signed = b.sign_transaction(tx, b.me_private)
     with pytest.raises(AmountError):

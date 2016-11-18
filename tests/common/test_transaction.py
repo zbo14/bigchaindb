@@ -349,7 +349,6 @@ def test_transaction_serialization(user_ffill, user_cond, data, data_id):
             'metadata': None,
             'asset': {
                 'id': data_id,
-                'divisible': False,
                 'updatable': False,
                 'refillable': False,
                 'data': data,
@@ -388,7 +387,6 @@ def test_transaction_deserialization(user_ffill, user_cond, data, data_id):
             'metadata': None,
             'asset': {
                 'id': data_id,
-                'divisible': False,
                 'updatable': False,
                 'refillable': False,
                 'data': data,
@@ -733,7 +731,6 @@ def test_create_create_transaction_single_io(user_cond, user_pub, data,
             },
             'asset': {
                 'id': data_id,
-                'divisible': False,
                 'updatable': False,
                 'refillable': False,
                 'data': data,
@@ -842,7 +839,6 @@ def test_create_create_transaction_threshold(user_pub, user2_pub, user3_pub,
             },
             'asset': {
                 'id': data_id,
-                'divisible': False,
                 'updatable': False,
                 'refillable': False,
                 'data': data,
@@ -897,7 +893,6 @@ def test_create_create_transaction_hashlock(user_pub, data, data_id):
             },
             'asset': {
                 'id': data_id,
-                'divisible': False,
                 'updatable': False,
                 'refillable': False,
                 'data': data,

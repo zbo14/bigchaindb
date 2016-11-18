@@ -7,7 +7,6 @@ def test_asset_default_values():
     asset = Asset()
     assert asset.data is None
     assert asset.data_id
-    assert asset.divisible is False
     assert asset.updatable is False
     assert asset.refillable is False
 
@@ -25,8 +24,6 @@ def test_asset_invalid_asset_initialization():
     with raises(TypeError):
         Asset(data='some wrong type')
     with raises(TypeError):
-        Asset(divisible=1)
-    with raises(TypeError):
         Asset(refillable=1)
     with raises(TypeError):
         Asset(updatable=1)
@@ -43,7 +40,6 @@ def test_asset_serialization(data, data_id):
 
     expected = {
         'id': data_id,
-        'divisible': False,
         'updatable': False,
         'refillable': False,
         'data': data,
@@ -57,7 +53,6 @@ def test_asset_deserialization(data, data_id):
 
     asset_dict = {
         'id': data_id,
-        'divisible': False,
         'updatable': False,
         'refillable': False,
         'data': data,
@@ -70,8 +65,6 @@ def test_asset_deserialization(data, data_id):
 def test_validate_asset():
     from bigchaindb.common.transaction import Asset
 
-    with raises(TypeError):
-        Asset(divisible=1)
     with raises(TypeError):
         Asset(refillable=1)
     with raises(TypeError):

@@ -399,24 +399,21 @@ class Asset(object):
 
         Note:
             Currently, the following flags are not yet fully supported:
-                - `divisible`
                 - `updatable`
                 - `refillable`
 
         Attributes:
             data (dict): A dictionary of data that can be added to an Asset.
             data_id (str): A unique identifier of `data`'s content.
-            divisible (bool): A flag indicating if an Asset can be divided.
             updatable (bool): A flag indicating if an Asset can be updated.
             refillable (bool): A flag indicating if an Asset can be refilled.
     """
 
-    def __init__(self, data=None, data_id=None, divisible=False,
+    def __init__(self, data=None, data_id=None,
                  updatable=False, refillable=False):
         """An Asset is not required to contain any extra data from outside."""
         self.data = data
         self.data_id = data_id if data_id is not None else self.to_hash()
-        self.divisible = divisible
         self.updatable = updatable
         self.refillable = refillable
 
@@ -438,7 +435,6 @@ class Asset(object):
         """
         return {
             'id': self.data_id,
-            'divisible': self.divisible,
             'updatable': self.updatable,
             'refillable': self.refillable,
             'data': self.data,
@@ -455,7 +451,6 @@ class Asset(object):
                 :class:`~bigchaindb.common.transaction.Asset`
         """
         return cls(asset.get('data'), asset['id'],
-                   asset.get('divisible', False),
                    asset.get('updatable', False),
                    asset.get('refillable', False))
 
@@ -467,8 +462,6 @@ class Asset(object):
         """Validates the asset"""
         if self.data is not None and not isinstance(self.data, dict):
             raise TypeError('`data` must be a dict instance or None')
-        if not isinstance(self.divisible, bool):
-            raise TypeError('`divisible` must be a boolean')
         if not isinstance(self.refillable, bool):
             raise TypeError('`refillable` must be a boolean')
         if not isinstance(self.updatable, bool):

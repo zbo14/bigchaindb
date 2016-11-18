@@ -92,7 +92,6 @@ POST /transactions/
           ],
           "operation": "CREATE",
           "asset": {
-            "divisible": false,
             "updatable": false,
             "data": null,
             "id": "aebeab22-e672-4d3b-a187-bde5fda6533d",
@@ -160,7 +159,6 @@ POST /transactions/
           "asset": {
             "updatable": false,
             "refillable": false,
-            "divisible": false,
             "data": null,
             "id": "aebeab22-e672-4d3b-a187-bde5fda6533d"
           },
@@ -258,7 +256,6 @@ GET /transactions/{tx_id}
           ],
           "operation": "CREATE",
           "asset": {
-            "divisible": false,
             "updatable": false,
             "data": null,
             "id": "aebeab22-e672-4d3b-a187-bde5fda6533d",
