@@ -318,77 +318,6 @@ class RethinkDBBackend:
                 r.table('votes')
                 .insert(vote))
 
-    def get_genesis_block(self):
-        """Get the genesis block
-
-        Returns:
-            The genesis block
-        """
-        return self.connection.run(
-            r.table('bigchain', read_mode=self.read_mode)
-            .filter(util.is_genesis_block)
-            .nth(0))
-
-    def get_last_voted_block(self, node_pubkey):
-        """Get the last voted block for a specific node.
-
-        Args:
-            node_pubkey (str): base58 encoded public key.
-
-        Returns:
-            The last block the node has voted on. If the node didn't cast
-            any vote then the genesis block is returned.
-        """
-        try:
-            # get the latest value for the vote timestamp (over all votes)
-            max_timestamp = self.connection.run(
-                    r.table('votes', read_mode=self.read_mode)
-                    .filter(r.row['node_pubkey'] == node_pubkey)
-                    .max(r.row['vote']['timestamp']))['vote']['timestamp']
-
-            last_voted = list(self.connection.run(
-                r.table('votes', read_mode=self.read_mode)
-                .filter(r.row['vote']['timestamp'] == max_timestamp)
-                .filter(r.row['node_pubkey'] == node_pubkey)))
-
-        except r.ReqlNonExistenceError:
-            # return last vote if last vote exists else return Genesis block
-            return self.get_genesis_block()
-
-        # Now the fun starts. Since the resolution of timestamp is a second,
-        # we might have more than one vote per timestamp. If this is the case
-        # then we need to rebuild the chain for the blocks that have been retrieved
-        # to get the last one.
-
-        # Given a block_id, mapping returns the id of the block pointing at it.
-        mapping = {v['vote']['previous_block']: v['vote']['voting_for_block']
-                   for v in last_voted}
-
-        # Since we follow the chain backwards, we can start from a random
-        # point of the chain and "move up" from it.
-        last_block_id = list(mapping.values())[0]
-
-        # We must be sure to break the infinite loop. This happens when:
-        # - the block we are currenty iterating is the one we are looking for.
-        #   This will trigger a KeyError, breaking the loop
-        # - we are visiting again a node we already explored, hence there is
-        #   a loop. This might happen if a vote points both `previous_block`
-        #   and `voting_for_block` to the same `block_id`
-        explored = set()
-
-        while True:
-            try:
-                if last_block_id in explored:
-                    raise exceptions.CyclicBlockchainError()
-                explored.add(last_block_id)
-                last_block_id = mapping[last_block_id]
-            except KeyError:
-                break
-
-        return self.connection.run(
-                r.table('bigchain', read_mode=self.read_mode)
-                .get(last_block_id))
-
     def get_unvoted_blocks(self, node_pubkey):
         """Return all the blocks that have not been voted by the specified node.
 
@@ -405,8 +334,4 @@ class RethinkDBBackend:
                                        .get_all([block['id'], node_pubkey], index='block_and_voter')
                                        .is_empty())
                 .order_by(r.asc(r.row['block']['timestamp'])))
-
-        # FIXME: I (@vrde) don't like this solution. Filtering should be done at a
-        #        database level. Solving issue #444 can help untangling the situation
-        unvoted_blocks = filter(lambda block: not util.is_genesis_block(block), unvoted)
-        return unvoted_blocks
+        return unvoted

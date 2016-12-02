@@ -72,16 +72,9 @@ def cleanup_tables(request, node_config):
 @pytest.fixture
 def inputs(user_pk):
     from bigchaindb.models import Transaction
-    from bigchaindb.common.exceptions import GenesisBlockAlreadyExistsError
-    # 1. create the genesis block
     b = Bigchain()
-    try:
-        g = b.create_genesis_block()
-    except GenesisBlockAlreadyExistsError:
-        pass
 
     # 2. create blocks with transactions for `USER` to spend
-    prev_block_id = g.id
     for block in range(4):
         transactions = [
             Transaction.create([b.me], [([user_pk], 1)]).sign([b.me_private])
@@ -91,8 +84,7 @@ def inputs(user_pk):
         b.write_block(block, durability='hard')
 
         # 3. vote the blocks valid, so that the inputs are valid
-        vote = b.vote(block.id, prev_block_id, True)
-        prev_block_id = block.id
+        vote = b.vote(block.id, True)
         b.write_vote(vote)
 
 
@@ -109,16 +101,9 @@ def user2_pk():
 @pytest.fixture
 def inputs_shared(user_pk, user2_pk):
     from bigchaindb.models import Transaction
-    from bigchaindb.common.exceptions import GenesisBlockAlreadyExistsError
-    # 1. create the genesis block
     b = Bigchain()
-    try:
-        g = b.create_genesis_block()
-    except GenesisBlockAlreadyExistsError:
-        pass
 
     # 2. create blocks with transactions for `USER` to spend
-    prev_block_id = g.id
     for block in range(4):
         transactions = [
             Transaction.create(
@@ -129,6 +114,6 @@ def inputs_shared(user_pk, user2_pk):
         b.write_block(block, durability='hard')
 
         # 3. vote the blocks valid, so that the inputs are valid
-        vote = b.vote(block.id, prev_block_id, True)
-        prev_block_id = block.id
+        vote = b.vote(block.id, True)
         b.write_vote(vote)
+        import pdb; pdb.set_trace()

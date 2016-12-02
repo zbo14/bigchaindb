@@ -138,22 +138,3 @@ def verify_vote_signature(voters, signed_vote):
 
     public_key = crypto.PublicKey(pk_base58)
     return public_key.verify(serialize(signed_vote['vote']).encode(), signature)
-
-
-def is_genesis_block(block):
-    """Check if the block is the genesis block.
-
-    Args:
-        block (dict | Block): the block to check
-
-    Returns:
-        bool: True if the block is the genesis block, False otherwise.
-    """
-
-    # we cannot have empty blocks, there will always be at least one
-    # element in the list so we can safely refer to it
-    # TODO: Remove this try-except and only handle `Block` as input
-    try:
-        return block.transactions[0].operation == 'GENESIS'
-    except AttributeError:
-        return block['block']['transactions'][0]['operation'] == 'GENESIS'

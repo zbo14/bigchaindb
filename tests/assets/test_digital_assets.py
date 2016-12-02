@@ -93,7 +93,7 @@ def test_get_asset_id_transfer_transaction(b, user_pk, user_sk):
     block = b.create_block([tx_transfer_signed])
     b.write_block(block, durability='hard')
     # vote the block valid
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
     asset_id = Asset.get_asset_id(tx_transfer)
 
@@ -132,7 +132,7 @@ def test_get_transactions_by_asset_id(b, user_pk, user_sk):
     block = b.create_block([tx_transfer_signed])
     b.write_block(block, durability='hard')
     # vote the block valid
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     txs = b.get_transactions_by_asset_id(asset_id)
@@ -165,7 +165,7 @@ def test_get_transactions_by_asset_id_with_invalid_block(b, user_pk, user_sk):
     block = b.create_block([tx_transfer_signed])
     b.write_block(block, durability='hard')
     # vote the block invalid
-    vote = b.vote(block.id, b.get_last_voted_block().id, False)
+    vote = b.vote(block.id, False)
     b.write_vote(vote)
 
     txs = b.get_transactions_by_asset_id(asset_id)
@@ -189,7 +189,7 @@ def test_get_asset_by_id(b, user_pk, user_sk):
     block = b.create_block([tx_transfer_signed])
     b.write_block(block, durability='hard')
     # vote the block valid
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     txs = b.get_transactions_by_asset_id(asset_id)

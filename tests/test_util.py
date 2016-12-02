@@ -131,9 +131,3 @@ def test_process_group_instantiates_and_start_processes(mock_process):
 
     for process in pg.processes:
         process.start.assert_called_with()
-
-
-def test_is_genesis_block_returns_true_if_genesis(b):
-    from bigchaindb.util import is_genesis_block
-    genesis_block = b.prepare_genesis_block()
-    assert is_genesis_block(genesis_block)

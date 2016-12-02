@@ -198,7 +198,7 @@ bigchaindb set-replicas numreplicas
 
 where:
 
-* `bigchaindb init` creates the database within RethinkDB, the tables, the indexes, and the genesis block.
+* `bigchaindb init` creates the neccesary tables and indexes within RethinkDB.
 * `numshards` should be set to the number of nodes in the initial cluster.
 * `numreplicas` should be set to the database replication factor decided by the federation. It must be 3 or more for [RethinkDB failover](https://rethinkdb.com/docs/failover/) to work.
 

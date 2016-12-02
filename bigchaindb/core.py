@@ -534,60 +534,17 @@ class Bigchain(object):
     def transaction_exists(self, transaction_id):
         return self.backend.has_transaction(transaction_id)
 
-    def prepare_genesis_block(self):
-        """Prepare a genesis block."""
-
-        metadata = {'message': 'Hello World from the BigchainDB'}
-        transaction = Transaction.create([self.me], [([self.me], 1)],
-                                         metadata=metadata)
-
-        # NOTE: The transaction model doesn't expose an API to generate a
-        #       GENESIS transaction, as this is literally the only usage.
-        transaction.operation = 'GENESIS'
-        transaction = transaction.sign([self.me_private])
-
-        # create the block
-        return self.create_block([transaction])
-
-    def create_genesis_block(self):
-        """Create the genesis block
-
-        Block created when bigchain is first initialized. This method is not atomic, there might be concurrency
-        problems if multiple instances try to write the genesis block when the BigchainDB Federation is started,
-        but it's a highly unlikely scenario.
-        """
-
-        # 1. create one transaction
-        # 2. create the block with one transaction
-        # 3. write the block to the bigchain
-
-        blocks_count = self.backend.count_blocks()
-
-        if blocks_count:
-            raise exceptions.GenesisBlockAlreadyExistsError('Cannot create the Genesis block')
-
-        block = self.prepare_genesis_block()
-        self.write_block(block, durability='hard')
-
-        return block
-
-    def vote(self, block_id, previous_block_id, decision, invalid_reason=None):
+    def vote(self, block_id, decision, invalid_reason=None):
         """Create a signed vote for a block given the
-        :attr:`previous_block_id` and the :attr:`decision` (valid/invalid).
+        :attr:`decision` (valid/invalid).
 
         Args:
             block_id (str): The id of the block to vote on.
-            previous_block_id (str): The id of the previous block.
             decision (bool): Whether the block is valid or invalid.
             invalid_reason (Optional[str]): Reason the block is invalid
         """
-
-        if block_id == previous_block_id:
-            raise exceptions.CyclicBlockchainError()
-
         vote = {
             'voting_for_block': block_id,
-            'previous_block': previous_block_id,
             'is_block_valid': decision,
             'invalid_reason': invalid_reason,
             'timestamp': gen_timestamp()
@@ -607,11 +564,6 @@ class Bigchain(object):
     def write_vote(self, vote):
         """Write the vote to the database."""
         return self.backend.write_vote(vote)
-
-    def get_last_voted_block(self):
-        """Returns the last block that this node voted on."""
-
-        return Block.from_dict(self.backend.get_last_voted_block(self.me))
 
     def get_unvoted_blocks(self):
         """Return all the blocks that have not been voted on by this node.
@@ -643,9 +595,6 @@ class Bigchain(object):
 
         # vote_cast is the list of votes e.g. [True, True, False]
         vote_cast = [vote['vote']['is_block_valid'] for vote in votes]
-        # prev_block are the ids of the nominal prev blocks e.g.
-        # ['block1_id', 'block1_id', 'block2_id']
-        prev_block = [vote['vote']['previous_block'] for vote in votes]
         # vote_validity checks whether a vote is valid
         # or invalid, e.g. [False, True, True]
         vote_validity = [self.consensus.verify_vote_signature(voters, vote) for vote in votes]
@@ -670,22 +619,5 @@ class Bigchain(object):
         # relevant, since one side must be a majority.
         if n_invalid_votes >= math.ceil(n_voters / 2):
             return Bigchain.BLOCK_INVALID
-        elif n_valid_votes > math.floor(n_voters / 2):
-            # The block could be valid, but we still need to check if votes
-            # agree on the previous block.
-            #
-            # First, only consider blocks with legitimate votes
-            prev_block_list = list(compress(prev_block, vote_validity))
-            # Next, only consider the blocks with 'yes' votes
-            prev_block_valid_list = list(compress(prev_block_list, vote_list))
-            counts = collections.Counter(prev_block_valid_list)
-            # Make sure the majority vote agrees on previous node.
-            # The majority vote must be the most common, by definition.
-            # If it's not, there is no majority agreement on the previous
-            # block.
-            if counts.most_common()[0][1] > math.floor(n_voters / 2):
-                return Bigchain.BLOCK_VALID
-            else:
-                return Bigchain.BLOCK_INVALID
         else:
-            return Bigchain.BLOCK_UNDECIDED
+            return Bigchain.BLOCK_VALID

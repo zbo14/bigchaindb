@@ -42,7 +42,7 @@ Write the node's public key (i.e. one of its configuration values) to standard o
 
 ## bigchaindb init
 
-Create a RethinkDB database, all RethinkDB database tables, various RethinkDB database indexes, and the genesis block.
+Create a RethinkDB database, all RethinkDB database tables & indexes.
 
 Note: The `bigchaindb start` command (see below) always starts by trying a `bigchaindb init` first. If it sees that the RethinkDB database already exists, then it doesn't re-initialize the database. One doesn't have to do `bigchaindb init` before `bigchaindb start`. `bigchaindb init` is useful if you only want to initialize (but not start).
 

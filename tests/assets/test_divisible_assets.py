@@ -143,7 +143,7 @@ def test_single_in_single_own_single_out_single_own_transfer(b, user_pk,
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -177,7 +177,7 @@ def test_single_in_single_own_multiple_out_single_own_transfer(b, user_pk,
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -213,7 +213,7 @@ def test_single_in_single_own_single_out_multiple_own_transfer(b, user_pk,
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -254,7 +254,7 @@ def test_single_in_single_own_multiple_out_mix_own_transfer(b, user_pk,
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -296,7 +296,7 @@ def test_single_in_multiple_own_single_out_single_own_transfer(b, user_pk,
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -335,7 +335,7 @@ def test_multiple_in_single_own_single_out_single_own_transfer(b, user_pk,
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -372,7 +372,7 @@ def test_multiple_in_multiple_own_single_out_single_own_transfer(b, user_pk,
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -417,7 +417,7 @@ def test_muiltiple_in_mix_own_multiple_out_single_own_transfer(b, user_pk,
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -462,7 +462,7 @@ def test_muiltiple_in_mix_own_multiple_out_mix_own_transfer(b, user_pk,
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -514,7 +514,7 @@ def test_multiple_in_different_transactions(b, user_pk, user_sk):
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER divisible asset
@@ -530,7 +530,7 @@ def test_multiple_in_different_transactions(b, user_pk, user_sk):
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -571,7 +571,7 @@ def test_amount_error_transfer(b, user_pk, user_sk):
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -614,7 +614,7 @@ def test_threshold_same_public_key(b, user_pk, user_sk):
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # TRANSFER
@@ -643,7 +643,7 @@ def test_sum_amount(b, user_pk, user_sk):
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # create a transfer transaction with one output and check if the amount
@@ -672,7 +672,7 @@ def test_divide(b, user_pk, user_sk):
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # create a transfer transaction with 3 outputs and check if the amount
@@ -705,7 +705,7 @@ def test_non_positive_amounts_on_transfer(b, user_pk):
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     with pytest.raises(AmountError):
@@ -731,7 +731,7 @@ def test_non_positive_amounts_on_transfer_validate(b, user_pk, user_sk):
     assert block.validate(b) == block
     b.write_block(block, durability='hard')
     # vote
-    vote = b.vote(block.id, b.get_last_voted_block().id, True)
+    vote = b.vote(block.id, True)
     b.write_vote(vote)
 
     # create a transfer transaction with 3 outputs and check if the amount

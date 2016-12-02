@@ -93,13 +93,10 @@ definitions:
 
         A ``TRANSFER`` transaction transfers ownership of an asset, by providing
         fulfillments to conditions of earlier transactions.
-
-        A ``GENESIS`` transaction is a special case transaction used as the
         sole member of the first block in a BigchainDB ledger.
     enum:
     - CREATE
     - TRANSFER
-    - GENESIS
   asset:
     type: object
     description: |

@@ -174,8 +174,8 @@ if [ "$WHAT_TO_DEPLOY" == "servers" ]; then
         fab set_host:$HOST send_confile:$CONFILE
     done
 
-    # Initialize BigchainDB (i.e. Create the RethinkDB database,
-    # the tables, the indexes, and genesis glock). Note that
+    # Initialize BigchainDB (i.e. Create the RethinkDB tables
+    # and indexes). Note that
     # this will only be sent to one of the nodes, see the
     # definition of init_bigchaindb() in fabfile.py to see why.
     fab init_bigchaindb

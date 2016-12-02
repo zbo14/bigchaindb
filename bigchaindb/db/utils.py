@@ -167,12 +167,10 @@ def init_database():
 
 def init():
     # Try to access the keypair, throws an exception if it does not exist
-    b = bigchaindb.Bigchain()
+    bigchaindb.Bigchain()
 
     init_database()
 
-    logger.info('Create genesis block.')
-    b.create_genesis_block()
     logger.info('Done, have fun!')
 
 

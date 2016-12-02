@@ -247,8 +247,7 @@ def send_client_confile(confile):
 
 
 # Initialize BigchainDB
-# i.e. create the database, the tables,
-# the indexes, and the genesis block.
+# i.e. create database tables & indexes
 # (The @hosts decorator is used to make this
 # task run on only one node. See http://tinyurl.com/h9qqf3t )
 @task

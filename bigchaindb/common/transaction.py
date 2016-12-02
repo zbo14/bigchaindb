@@ -592,8 +592,7 @@ class Transaction(object):
     """
     CREATE = 'CREATE'
     TRANSFER = 'TRANSFER'
-    GENESIS = 'GENESIS'
-    ALLOWED_OPERATIONS = (CREATE, TRANSFER, GENESIS)
+    ALLOWED_OPERATIONS = (CREATE, TRANSFER)
     VERSION = 1
 
     def __init__(self, operation, asset, fulfillments=None, conditions=None,
@@ -989,7 +988,7 @@ class Transaction(object):
         Conditions.
 
             Note:
-                Given a `CREATE` or `GENESIS` Transaction is passed,
+                Given a `CREATE` Transaction is passed,
                 dummyvalues for Conditions are submitted for validation that
                 evaluate parts of the validation-checks to `True`.
 
@@ -1001,7 +1000,7 @@ class Transaction(object):
             Returns:
                 bool: If all Fulfillments are valid.
         """
-        if self.operation in (Transaction.CREATE, Transaction.GENESIS):
+        if self.operation == Transaction.CREATE:
             # NOTE: Since in the case of a `CREATE`-transaction we do not have
             #       to check for input_conditions, we're just submitting dummy
             #       values to the actual method. This simplifies it's logic
@@ -1062,7 +1061,7 @@ class Transaction(object):
         """Validates a single Fulfillment against a single Condition.
 
             Note:
-                In case of a `CREATE` or `GENESIS` Transaction, this method
+                In case of a `CREATE` Transaction, this method
                 does not validate against `input_condition_uri`.
 
             Args:
@@ -1083,8 +1082,8 @@ class Transaction(object):
         except (TypeError, ValueError, ParsingError):
             return False
 
-        if operation in (Transaction.CREATE, Transaction.GENESIS):
-            # NOTE: In the case of a `CREATE` or `GENESIS` transaction, the
+        if operation == Transaction.CREATE:
+            # NOTE: In the case of a `CREATE` transaction, the
             #       input condition is always validate to `True`.
             input_cond_valid = True
         else:
@@ -1104,7 +1103,7 @@ class Transaction(object):
             Returns:
                 dict: The Transaction as an alternative serialization format.
         """
-        if self.operation in (self.__class__.GENESIS, self.__class__.CREATE):
+        if self.operation == self.CREATE:
             asset = self.asset.to_dict()
         else:
             # NOTE: An `asset` in a `TRANSFER` only contains the asset's id
@@ -1207,7 +1206,7 @@ class Transaction(object):
                         in tx['fulfillments']]
         conditions = [Condition.from_dict(condition) for condition
                       in tx['conditions']]
-        if tx['operation'] in [cls.CREATE, cls.GENESIS]:
+        if tx['operation'] == cls.CREATE:
             asset = Asset.from_dict(tx['asset'])
         else:
             asset = AssetLink.from_dict(tx['asset'])

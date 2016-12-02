@@ -34,7 +34,6 @@ class Vote:
         # This is the Bigchain instance that will be "shared" (aka: copied)
         # by all the subprocesses
         self.bigchain = Bigchain()
-        self.last_voted_id = Bigchain().get_last_voted_block().id
 
         self.counters = Counter()
         self.validity = {}
@@ -116,10 +115,7 @@ class Vote:
                                                                     True)
 
         if self.counters[block_id] == num_tx:
-            vote = self.bigchain.vote(block_id,
-                                      self.last_voted_id,
-                                      self.validity[block_id])
-            self.last_voted_id = block_id
+            vote = self.bigchain.vote(block_id, self.validity[block_id])
             del self.counters[block_id]
             del self.validity[block_id]
             return vote
