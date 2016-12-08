@@ -2,140 +2,106 @@
 
 import logging
 
-from bigchaindb.common import exceptions
 import rethinkdb as r
 
-import bigchaindb
+from bigchaindb import backend
+from bigchaindb.common import exceptions
+from bigchaindb.backend.utils import module_dispatch_registrar
+from bigchaindb.backend.rethinkdb.connection import RethinkDBConnection
 
 
 logger = logging.getLogger(__name__)
+register_schema = module_dispatch_registrar(backend.schema)
 
 
-def get_backend(host=None, port=None, db=None):
-    '''Get a backend instance.'''
-
-    from bigchaindb.db.backends import rethinkdb
-
-    # NOTE: this function will be re-implemented when we have real
-    # multiple backends to support. Right now it returns the RethinkDB one.
-    return rethinkdb.RethinkDBBackend(host=host or bigchaindb.config['database']['host'],
-                                      port=port or bigchaindb.config['database']['port'],
-                                      db=db or bigchaindb.config['database']['name'])
-
-
-def get_conn():
-    '''Get the connection to the database.'''
-
-    return r.connect(host=bigchaindb.config['database']['host'],
-                     port=bigchaindb.config['database']['port'],
-                     db=bigchaindb.config['database']['name'])
-
-
-def get_database_name():
-    return bigchaindb.config['database']['name']
-
-
-def create_database(conn, dbname):
-    if r.db_list().contains(dbname).run(conn):
+@register_schema(RethinkDBConnection)
+def create_database(connection, dbname):
+    if connection.run(r.db_list().contains(dbname)):
         raise exceptions.DatabaseAlreadyExists('Database `{}` already exists'.format(dbname))
 
     logger.info('Create database `%s`.', dbname)
-    r.db_create(dbname).run(conn)
+    connection.run(r.db_create(dbname))
 
 
-def create_table(conn, dbname, table_name):
-    logger.info('Create `%s` table.', table_name)
-    # create the table
-    r.db(dbname).table_create(table_name).run(conn)
+@register_schema(RethinkDBConnection)
+def create_tables(connection, dbname):
+    for table_name in ['bigchain', 'backlog', 'votes']:
+        logger.info('Create `%s` table.', table_name)
+        connection.run(r.db(dbname).table_create(table_name))
 
 
-def create_bigchain_secondary_index(conn, dbname):
+@register_schema(RethinkDBConnection)
+def create_indexes(connection, dbname):
+    create_bigchain_secondary_index(connection, dbname)
+    create_backlog_secondary_index(connection, dbname)
+    create_votes_secondary_index(connection, dbname)
+
+
+@register_schema(RethinkDBConnection)
+def drop_database(connection, dbname):
+    try:
+        logger.info('Drop database `%s`', dbname)
+        connection.run(r.db_drop(dbname))
+        logger.info('Done.')
+    except r.ReqlOpFailedError:
+        raise exceptions.DatabaseDoesNotExist('Database `{}` does not exist'.format(dbname))
+
+
+def create_bigchain_secondary_index(connection, dbname):
     logger.info('Create `bigchain` secondary index.')
+
     # to order blocks by timestamp
-    r.db(dbname).table('bigchain')\
-        .index_create('block_timestamp', r.row['block']['timestamp'])\
-        .run(conn)
+    connection.run(
+        r.db(dbname)
+        .table('bigchain')
+        .index_create('block_timestamp', r.row['block']['timestamp']))
+
     # to query the bigchain for a transaction id
-    r.db(dbname).table('bigchain')\
-        .index_create('transaction_id',
-                      r.row['block']['transactions']['id'], multi=True)\
-        .run(conn)
+    connection.run(
+        r.db(dbname)
+        .table('bigchain')
+        .index_create('transaction_id', r.row['block']['transactions']['id'], multi=True))
+
     # secondary index for asset uuid
-    r.db(dbname).table('bigchain')\
-                .index_create('asset_id',
-                              r.row['block']['transactions']['asset']['id'], multi=True)\
-                .run(conn)
+    connection.run(
+        r.db(dbname)
+        .table('bigchain')
+        .index_create('asset_id', r.row['block']['transactions']['asset']['id'], multi=True))
 
     # wait for rethinkdb to finish creating secondary indexes
-    r.db(dbname).table('bigchain').index_wait().run(conn)
+    connection.run(
+        r.db(dbname)
+        .table('bigchain')
+        .index_wait())
 
 
-def create_backlog_secondary_index(conn, dbname):
+def create_backlog_secondary_index(connection, dbname):
     logger.info('Create `backlog` secondary index.')
+
     # compound index to read transactions from the backlog per assignee
-    r.db(dbname).table('backlog')\
-        .index_create('assignee__transaction_timestamp',
-                      [r.row['assignee'], r.row['assignment_timestamp']])\
-        .run(conn)
+    connection.run(
+        r.db(dbname)
+        .table('backlog')
+        .index_create('assignee__transaction_timestamp', [r.row['assignee'], r.row['assignment_timestamp']]))
 
     # wait for rethinkdb to finish creating secondary indexes
-    r.db(dbname).table('backlog').index_wait().run(conn)
+    connection.run(
+        r.db(dbname)
+        .table('backlog')
+        .index_wait())
 
 
-def create_votes_secondary_index(conn, dbname):
+def create_votes_secondary_index(connection, dbname):
     logger.info('Create `votes` secondary index.')
+
     # compound index to order votes by block id and node
-    r.db(dbname).table('votes')\
-        .index_create('block_and_voter',
-                      [r.row['vote']['voting_for_block'],
-                       r.row['node_pubkey']])\
-        .run(conn)
+    connection.run(
+        r.db(dbname)
+        .table('votes')
+        .index_create('block_and_voter', [r.row['vote']['voting_for_block'], r.row['node_pubkey']]))
 
     # wait for rethinkdb to finish creating secondary indexes
-    r.db(dbname).table('votes').index_wait().run(conn)
-
-
-def init_database():
-    conn = get_conn()
-    dbname = get_database_name()
-    create_database(conn, dbname)
-
-    table_names = ['bigchain', 'backlog', 'votes']
-    for table_name in table_names:
-        create_table(conn, dbname, table_name)
-
-    create_bigchain_secondary_index(conn, dbname)
-    create_backlog_secondary_index(conn, dbname)
-    create_votes_secondary_index(conn, dbname)
-
-
-def init():
-    # Try to access the keypair, throws an exception if it does not exist
-    b = bigchaindb.Bigchain()
-
-    init_database()
-
-    logger.info('Create genesis block.')
-    b.create_genesis_block()
-    logger.info('Done, have fun!')
-
-
-def drop(assume_yes=False):
-    conn = get_conn()
-    dbname = bigchaindb.config['database']['name']
-    if assume_yes:
-        response = 'y'
-
-    else:
-        response = input('Do you want to drop `{}` database? [y/n]: '.format(dbname))
-
-    if response == 'y':
-        try:
-            logger.info('Drop database `%s`', dbname)
-            r.db_drop(dbname).run(conn)
-            logger.info('Done.')
-        except r.ReqlOpFailedError:
-            raise exceptions.DatabaseDoesNotExist('Database `{}` does not exist'.format(dbname))
-
-    else:
-        logger.info('Drop aborted')
+    connection.run(
+        r.db(dbname)
+        .table('votes')
+        .index_wait())
