@@ -165,8 +165,8 @@ def start():
     """Create, start, and return the block pipeline."""
     connection = connect(**bigchaindb.config['database'])
     changefeed = get_changefeed(connection, 'backlog',
-                                ChangeFeed.INSER | ChangeFeed.UPDATE,
-                                preefed=initial())
+                                ChangeFeed.INSERT | ChangeFeed.UPDATE,
+                                prefeed=initial())
     pipeline = create_pipeline()
     pipeline.setup(indata=changefeed)
     pipeline.start()
