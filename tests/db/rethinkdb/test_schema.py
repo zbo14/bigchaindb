@@ -198,4 +198,3 @@ def test_drop_non_existent_db_raises_an_error():
 
     with pytest.raises(exceptions.DatabaseDoesNotExist):
         utils.drop(assume_yes=True)
-
