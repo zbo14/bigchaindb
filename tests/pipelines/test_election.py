@@ -127,7 +127,9 @@ def test_start(mock_start):
 
 def test_full_pipeline(b, user_pk):
     import random
-    from bigchaindb.backend import query
+    import bigchaindb
+    from bigchaindb.backend import query, get_changefeed, connect
+    from bigchaindb.backend.changefeed import ChangeFeed
     from bigchaindb.models import Transaction
 
     outpipe = Pipe()
@@ -153,10 +155,13 @@ def test_full_pipeline(b, user_pk):
     invalid_block = b.create_block(txs)
     b.write_block(invalid_block)
 
+    connection = connect(**bigchaindb.config['database'])
+    changefeed = get_changefeed(connection, 'votes', ChangeFeed.INSERT)
     pipeline = election.create_pipeline()
-    pipeline.setup(indata=election.get_changefeed(), outdata=outpipe)
+    pipeline.setup(indata=changefeed, outdata=outpipe)
     pipeline.start()
     time.sleep(1)
+
     # vote one block valid, one invalid
     vote_valid = b.vote(valid_block.id, 'abc', True)
     vote_invalid = b.vote(invalid_block.id, 'abc', False)
