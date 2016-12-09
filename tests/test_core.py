@@ -7,6 +7,7 @@ import pytest
 def config(request, monkeypatch):
     config = {
         'database': {
+            'backend': request.config.getoption('--database-backend'),
             'host': 'host',
             'port': 28015,
             'name': 'bigchain',
