@@ -1,10 +1,14 @@
 import time
+import logging
+
 import rethinkdb as r
 
-import bigchaindb
+from bigchaindb.backend.connection import Connection
+
+logger = logging.getLogger(__name__)
 
 
-class Connection:
+class RethinkDBConnection(Connection):
     """This class is a proxy to run queries against the database,
     it is:
     - lazy, since it creates a connection only when needed
@@ -12,19 +16,20 @@ class Connection:
       more times to run the query or open a connection.
     """
 
-    def __init__(self, host=None, port=None, db=None, max_tries=3):
+    def __init__(self, host, port, dbname, max_tries=3):
         """Create a new Connection instance.
 
         Args:
-            host (str, optional): the host to connect to.
-            port (int, optional): the port to connect to.
-            db (str, optional): the database to use.
+            host (str): the host to connect to.
+            port (int): the port to connect to.
+            dbname (str): the name of the database to use.
             max_tries (int, optional): how many tries before giving up.
+                Defaults to 3.
         """
 
-        self.host = host or bigchaindb.config['database']['host']
-        self.port = port or bigchaindb.config['database']['port']
-        self.db = db or bigchaindb.config['database']['name']
+        self.host = host
+        self.port = port
+        self.dbname = dbname
         self.max_tries = max_tries
         self.conn = None
 
@@ -33,6 +38,10 @@ class Connection:
 
         Args:
             query: the RethinkDB query.
+
+        Raises:
+            :exc:`rethinkdb.ReqlDriverError`: After
+                :attr:`~.RethinkDBConnection.max_tries`.
         """
 
         if self.conn is None:
@@ -41,19 +50,29 @@ class Connection:
         for i in range(self.max_tries):
             try:
                 return query.run(self.conn)
-            except r.ReqlDriverError as exc:
+            except r.ReqlDriverError:
                 if i + 1 == self.max_tries:
                     raise
-                else:
-                    self._connect()
+                self._connect()
 
     def _connect(self):
-        for i in range(self.max_tries):
+        """Set a connection to RethinkDB.
+
+        The connection is available via :attr:`~.RethinkDBConnection.conn`.
+
+        Raises:
+            :exc:`rethinkdb.ReqlDriverError`: After
+                :attr:`~.RethinkDBConnection.max_tries`.
+        """
+
+        for i in range(1, self.max_tries + 1):
+            logging.debug('Connecting to database %s:%s/%s. (Attempt %s/%s)',
+                          self.host, self.port, self.dbname, i, self.max_tries)
             try:
-                self.conn = r.connect(host=self.host, port=self.port,
-                                      db=self.db)
-            except r.ReqlDriverError as exc:
-                if i + 1 == self.max_tries:
+                self.conn = r.connect(host=self.host, port=self.port, db=self.dbname)
+            except r.ReqlDriverError:
+                if i == self.max_tries:
                     raise
-                else:
-                    time.sleep(2**i)
+                wait_time = 2**i
+                logging.debug('Error connecting to database, waiting %ss', wait_time)
+                time.sleep(wait_time)

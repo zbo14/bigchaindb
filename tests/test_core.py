@@ -30,10 +30,12 @@ def config(request, monkeypatch):
 def test_bigchain_class_default_initialization(config):
     from bigchaindb.core import Bigchain
     from bigchaindb.consensus import BaseConsensusRules
+    from bigchaindb.backend.connection import Connection
     bigchain = Bigchain()
-    assert bigchain.host == config['database']['host']
-    assert bigchain.port == config['database']['port']
-    assert bigchain.dbname == config['database']['name']
+    assert isinstance(bigchain.connection, Connection)
+    assert bigchain.connection.host == config['database']['host']
+    assert bigchain.connection.port == config['database']['port']
+    assert bigchain.connection.dbname == config['database']['name']
     assert bigchain.me == config['keypair']['public']
     assert bigchain.me_private == config['keypair']['private']
     assert bigchain.nodes_except_me == config['keyring']
@@ -42,19 +44,25 @@ def test_bigchain_class_default_initialization(config):
 
 def test_bigchain_class_initialization_with_parameters(config):
     from bigchaindb.core import Bigchain
+    from bigchaindb.backend import connect
     from bigchaindb.consensus import BaseConsensusRules
     init_kwargs = {
-        'host': 'some_node',
-        'port': '12345',
-        'dbname': 'atom',
         'public_key': 'white',
         'private_key': 'black',
         'keyring': ['key_one', 'key_two'],
     }
-    bigchain = Bigchain(**init_kwargs)
-    assert bigchain.host == init_kwargs['host']
-    assert bigchain.port == init_kwargs['port']
-    assert bigchain.dbname == init_kwargs['dbname']
+    init_db_kwargs = {
+        'backend': 'rethinkdb',
+        'host': 'this_is_the_db_host',
+        'port': 12345,
+        'name': 'this_is_the_db_name',
+    }
+    connection = connect(**init_db_kwargs)
+    bigchain = Bigchain(connection=connection, **init_kwargs)
+    assert bigchain.connection == connection
+    assert bigchain.connection.host == init_db_kwargs['host']
+    assert bigchain.connection.port == init_db_kwargs['port']
+    assert bigchain.connection.dbname == init_db_kwargs['name']
     assert bigchain.me == init_kwargs['public_key']
     assert bigchain.me_private == init_kwargs['private_key']
     assert bigchain.nodes_except_me == init_kwargs['keyring']
