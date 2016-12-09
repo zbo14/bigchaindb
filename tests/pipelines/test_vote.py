@@ -484,7 +484,9 @@ def test_invalid_block_voting(monkeypatch, b, user_pk):
 
 
 def test_voter_considers_unvoted_blocks_when_single_node(monkeypatch, b):
-    from bigchaindb.backend import query
+    import bigchaindb
+    from bigchaindb.backend import query, get_changefeed, connect
+    from bigchaindb.backend.changefeed import ChangeFeed
     from bigchaindb.pipelines import vote
 
     outpipe = Pipe()
@@ -504,8 +506,11 @@ def test_voter_considers_unvoted_blocks_when_single_node(monkeypatch, b):
     block_ids.append(block_2.id)
     b.write_block(block_2)
 
+    connection = connect(**bigchaindb.config['database'])
+    changefeed = get_changefeed(connection, 'bigchain', ChangeFeed.INSERT,
+                                prefeed=vote.initial())
     vote_pipeline = vote.create_pipeline()
-    vote_pipeline.setup(indata=vote.get_changefeed(), outdata=outpipe)
+    vote_pipeline.setup(indata=changefeed, outdata=outpipe)
     vote_pipeline.start()
 
     # We expects two votes, so instead of waiting an arbitrary amount
@@ -532,7 +537,9 @@ def test_voter_considers_unvoted_blocks_when_single_node(monkeypatch, b):
 
 
 def test_voter_chains_blocks_with_the_previous_ones(monkeypatch, b):
-    from bigchaindb.backend import query
+    import bigchaindb
+    from bigchaindb.backend import query, connect, get_changefeed
+    from bigchaindb.backend.changefeed import ChangeFeed
     from bigchaindb.pipelines import vote
 
     outpipe = Pipe()
@@ -551,8 +558,11 @@ def test_voter_chains_blocks_with_the_previous_ones(monkeypatch, b):
     block_ids.append(block_2.id)
     b.write_block(block_2)
 
+    connection = connect(**bigchaindb.config['database'])
+    changefeed = get_changefeed(connection, 'bigchain', ChangeFeed.INSERT,
+                                prefeed=vote.initial())
     vote_pipeline = vote.create_pipeline()
-    vote_pipeline.setup(indata=vote.get_changefeed(), outdata=outpipe)
+    vote_pipeline.setup(indata=changefeed, outdata=outpipe)
     vote_pipeline.start()
 
     # We expects two votes, so instead of waiting an arbitrary amount
