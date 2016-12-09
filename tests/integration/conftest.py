@@ -27,7 +27,7 @@ def processes(b):
     block_maker = block.start()
     voter = vote.start()
     election_runner = election.start()
-    stale_monitor = stale.start()
+    stale_monitor = stale.start(timeout=1)
     yield
     block_maker.terminate()
     voter.terminate()

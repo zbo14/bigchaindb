@@ -1,4 +1,5 @@
 import time
+from random import uniform
 import pytest
 
 from bigchaindb import Bigchain
@@ -64,3 +65,25 @@ def test_double_create(b, user_pk):
     last_voted_block = b.get_last_voted_block()
     assert len(last_voted_block.transactions) == 1
     assert b.backend.count_blocks() == 2
+
+
+@pytest.mark.usefixtures('processes')
+def test_tx_reassign_from_missing_node(b, user_pk):
+    from bigchaindb.models import Transaction
+    b.nodes_except_me = ['aaa']
+    b.backlog_reassign_delay = 1
+
+    for _ in range(100):
+        tx = Transaction.create([b.me], [([user_pk], 1)],
+                                metadata={'test': uniform(0, 1)}) \
+                .sign([b.me_private])
+
+        b.write_transaction(tx)
+
+    time.sleep(5)
+
+    # test the transaction appears only once
+    last_voted_block = b.get_last_voted_block()
+    assert len(last_voted_block.transactions) == 100
+    assert b.backend.count_blocks() == 2
+    assert b.backend.count_backlog() == 0
