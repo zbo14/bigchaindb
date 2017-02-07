@@ -1240,3 +1240,38 @@ def test_transaction_unicode(b):
     assert b.get_block(block.id) == block.to_dict()
     assert block.validate(b) == block
     assert beer_json in serialize(block.to_dict())
+
+
+@pytest.mark.bdb
+def test_votes_from_known_nodes(b, user_sk, user_pk, genesis_block):
+    from bigchaindb.common import crypto
+    from bigchaindb.models import Transaction
+    from bigchaindb.common.crypto import generate_key_pair
+    from bigchaindb.common.utils import serialize
+
+    tx = Transaction.create([b.me], [([b.me], 1)])
+    tx = tx.sign([b.me_private])
+    block = b.create_block([tx])
+    b.write_block(block)
+
+    # vote the block INVALID
+    vote = b.vote(block.id, genesis_block.id, True)
+    b.write_vote(vote)
+
+    vote = vote['vote']
+    vote_data = serialize(vote)
+
+    for i in range(10):
+        priv, pub = generate_key_pair()
+        vote_signed = {
+            'node_pubkey': pub,
+            'signature': crypto.PrivateKey(priv).sign(vote_data.encode()),
+            'vote': vote,
+        }
+        b.write_vote(vote_signed)
+
+    print(b.block_election_status(block.id, block.voters))
+
+
+
+
