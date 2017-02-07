@@ -1251,8 +1251,13 @@ def test_votes_from_known_nodes(b, user_sk, user_pk, genesis_block):
 
     tx = Transaction.create([b.me], [([b.me], 1)])
     tx = tx.sign([b.me_private])
+
+
+    pairs = [generate_key_pair() for _ in range(10)]
+    b.nodes_except_me = [p[1] for p in pairs]
     block = b.create_block([tx])
     b.write_block(block)
+    b.nodes_except_me = []
 
     # vote the block INVALID
     vote = b.vote(block.id, genesis_block.id, True)
@@ -1261,17 +1266,12 @@ def test_votes_from_known_nodes(b, user_sk, user_pk, genesis_block):
     vote = vote['vote']
     vote_data = serialize(vote)
 
-    for i in range(10):
-        priv, pub = generate_key_pair()
+    for (priv, pub) in pairs:
         vote_signed = {
             'node_pubkey': pub,
-            'signature': crypto.PrivateKey(priv).sign(vote_data.encode()),
+            'signature': crypto.PrivateKey(priv).sign(vote_data.encode()).decode(),
             'vote': vote,
         }
         b.write_vote(vote_signed)
 
     print(b.block_election_status(block.id, block.voters))
-
-
-
-
