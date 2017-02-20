@@ -1275,3 +1275,30 @@ def test_votes_from_known_nodes(b, user_sk, user_pk, genesis_block):
         b.write_vote(vote_signed)
 
     print(b.block_election_status(block.id, block.voters))
+
+
+@pytest.mark.bdb
+def test_votes_dos(b, user_sk, user_pk, genesis_block):
+    """
+    Shows block being voted invalid because of unauthenticated vote
+    """
+    from bigchaindb.common import crypto
+    from bigchaindb.models import Transaction
+    from bigchaindb.common.crypto import generate_key_pair
+    from bigchaindb.common.utils import serialize
+
+    tx = Transaction.create([b.me], [([b.me], 1)])
+    tx = tx.sign([b.me_private])
+
+    block = b.create_block([tx])
+    b.write_block(block)
+    b.nodes_except_me = []
+
+    vote = b.vote(block.id, genesis_block.id, True)
+    b.write_vote(vote)
+
+    vote['signature'] = 'a' * len(vote['signature'])
+    b.write_vote(vote)
+
+    assert b.block_election_status(block.id, block.voters) == 'valid'
+
