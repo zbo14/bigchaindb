@@ -1301,4 +1301,3 @@ def test_votes_dos(b, user_sk, user_pk, genesis_block):
     b.write_vote(vote)
 
     assert b.block_election_status(block.id, block.voters) == 'valid'
-
