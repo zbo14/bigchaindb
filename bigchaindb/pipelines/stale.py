@@ -31,6 +31,7 @@ class StaleTransactionMonitor:
         """
         self.bigchain = Bigchain(backlog_reassign_delay=backlog_reassign_delay)
         self.timeout = timeout
+        logger.debug('Stale -- init')
 
     def check_transactions(self):
         """Poll backlog for stale transactions
@@ -38,6 +39,7 @@ class StaleTransactionMonitor:
         Returns:
             txs (list): txs to be re assigned
         """
+        logger.debug('Stale -- check_transactions')
         sleep(self.timeout)
         for tx in self.bigchain.get_stale_transactions():
             yield tx
@@ -48,8 +50,7 @@ class StaleTransactionMonitor:
         Returns:
             transaction
         """
-        # NOTE: Maybe this is to verbose?
-        logger.info('Reassigning transaction with id %s', tx['id'])
+        logger.debug('Stale -- reassign_transactions')
         self.bigchain.reassign_transaction(tx)
         return tx
 
@@ -69,7 +70,7 @@ def create_pipeline(timeout=5, backlog_reassign_delay=5):
     return monitor_pipeline
 
 
-def start(timeout=5, backlog_reassign_delay=None):
+def start(q, timeout=5, backlog_reassign_delay=None):
     """Create, start, and return the block pipeline."""
     pipeline = create_pipeline(timeout=timeout,
                                backlog_reassign_delay=backlog_reassign_delay)

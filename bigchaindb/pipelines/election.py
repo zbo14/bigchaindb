@@ -23,6 +23,7 @@ class Election:
 
     def __init__(self):
         self.bigchain = Bigchain()
+        logger.debug('Election -- init')
 
     def check_for_quorum(self, next_vote):
         """
@@ -32,6 +33,7 @@ class Election:
             next_vote: The next vote.
 
         """
+        logger.debug('Election -- check_for_quorum')
         next_block = self.bigchain.get_block(
             next_vote['vote']['voting_for_block'])
 
@@ -44,9 +46,7 @@ class Election:
         """
         Liquidates transactions from invalid blocks so they can be processed again
         """
-        logger.info('Rewriting %s transactions from invalid block %s',
-                    len(invalid_block.transactions),
-                    invalid_block.id)
+        logger.debug('Election -- requeue_transactions')
         for tx in invalid_block.transactions:
             self.bigchain.write_transaction(tx)
         return invalid_block
@@ -68,7 +68,7 @@ def get_changefeed():
     return backend.get_changefeed(connection, 'votes', ChangeFeed.INSERT)
 
 
-def start():
+def start(q):
     pipeline = create_pipeline()
     pipeline.setup(indata=get_changefeed())
     pipeline.start()

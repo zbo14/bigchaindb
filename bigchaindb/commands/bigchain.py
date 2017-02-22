@@ -29,7 +29,7 @@ from bigchaindb.commands import utils
 from bigchaindb import processes
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(processName)s %(threadName)s %(message)s')
 logger = logging.getLogger(__name__)
 
 

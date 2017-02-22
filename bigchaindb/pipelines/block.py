@@ -5,6 +5,7 @@ of actions to do on transactions is specified in the ``create_pipeline``
 function.
 """
 
+import time
 import logging
 
 from multipipes import Pipeline, Node, Pipe
@@ -28,10 +29,13 @@ class BlockPipeline:
         Methods of this class will be executed in different processes.
     """
 
-    def __init__(self):
+    def __init__(self, q):
         """Initialize the BlockPipeline creator"""
         self.bigchain = Bigchain()
         self.txs = []
+        self.q = q
+
+        logger.info('Block -- init')
 
     def filter_tx(self, tx):
         """Filter a transaction.
@@ -43,6 +47,8 @@ class BlockPipeline:
             dict: The transaction if assigned to the current node,
             ``None`` otherwise.
         """
+
+        logger.info('Block -- filter_tx')
         if tx['assignee'] == self.bigchain.me:
             tx.pop('assignee')
             tx.pop('assignment_timestamp')
@@ -61,6 +67,7 @@ class BlockPipeline:
             :class:`~bigchaindb.models.Transaction`: The transaction if valid,
             ``None`` otherwise.
         """
+        logger.info('Block -- validate_tx')
         try:
             tx = Transaction.from_dict(tx)
         except (SchemaValidationError, InvalidHash, InvalidSignature,
@@ -107,6 +114,8 @@ class BlockPipeline:
             :class:`~bigchaindb.models.Block`: The block,
             if a block is ready, or ``None``.
         """
+        logger.info('Block -- create_tx')
+
         if tx:
             self.txs.append(tx)
         if len(self.txs) == 1000 or (timeout and self.txs):
@@ -124,8 +133,7 @@ class BlockPipeline:
         Returns:
             :class:`~bigchaindb.models.Block`: The Block.
         """
-        logger.info('Write new block %s with %s transactions',
-                    block.id, len(block.transactions))
+        logger.info('Block -- write_tx')
         self.bigchain.write_block(block)
         return block
 
@@ -139,15 +147,16 @@ class BlockPipeline:
         Returns:
             :class:`~bigchaindb.models.Block`: The block.
         """
+        logger.info('Block -- delete_tx')
         self.bigchain.delete_transaction(*[tx.id for tx in block.transactions])
         return block
 
 
-def create_pipeline():
+def create_pipeline(q):
     """Create and return the pipeline of operations to be distributed
     on different processes."""
 
-    block_pipeline = BlockPipeline()
+    block_pipeline = BlockPipeline(q)
 
     pipeline = Pipeline([
         Pipe(maxsize=1000),
@@ -167,9 +176,9 @@ def get_changefeed():
                                   ChangeFeed.INSERT | ChangeFeed.UPDATE)
 
 
-def start():
+def start(q):
     """Create, start, and return the block pipeline."""
-    pipeline = create_pipeline()
+    pipeline = create_pipeline(q)
     pipeline.setup(indata=get_changefeed())
     pipeline.start()
     return pipeline

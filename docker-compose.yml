@@ -42,6 +42,7 @@ services:
       - ./pytest.ini:/usr/src/app/pytest.ini
       - ./tox.ini:/usr/src/app/tox.ini
       - ./Makefile:/usr/src/app/Makefile
+      - ../multipipes:/usr/src/multipipes
     environment:
       BIGCHAINDB_DATABASE_BACKEND: rethinkdb
       BIGCHAINDB_DATABASE_HOST: rdb
@@ -49,7 +50,13 @@ services:
     ports:
       - "9984"
     command: bigchaindb start
-  
+
+  pipes:
+    build:
+      context: ../multipipes
+    volumes:
+      - ../multipipes
+
   bdb-mdb:
     build:
       context: .

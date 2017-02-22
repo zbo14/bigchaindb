@@ -47,8 +47,10 @@ class Vote:
 
         self.invalid_dummy_tx = Transaction.create([self.bigchain.me],
                                                    [([self.bigchain.me], 1)])
+        logger.debug('Vote -- init')
 
     def validate_block(self, block):
+        logger.debug('Vote -- validate_block')
         if not self.bigchain.has_previous_vote(block['id'],
                                                block['block']['voters']):
             try:
@@ -85,6 +87,7 @@ class Vote:
             transactions contained in the block otherwise.
         """
 
+        logger.debug('Vote -- ungroup')
         num_tx = len(transactions)
         for tx in transactions:
             yield tx, block_id, num_tx
@@ -101,6 +104,7 @@ class Vote:
             Three values are returned, the validity of the transaction,
             ``block_id``, ``num_tx``.
         """
+        logger.debug('Vote -- validate_tx')
         return bool(self.bigchain.is_valid_transaction(tx)), block_id, num_tx
 
     def vote(self, tx_validity, block_id, num_tx):
@@ -114,6 +118,7 @@ class Vote:
         Returns:
             None, or a vote if a decision has been reached.
         """
+        logger.debug('Vote -- vote')
 
         self.counters[block_id] += 1
         self.validity[block_id] = tx_validity and self.validity.get(block_id,
@@ -134,9 +139,7 @@ class Vote:
         Args:
             vote: the vote to write.
         """
-        validity = 'valid' if vote['vote']['is_block_valid'] else 'invalid'
-        logger.info("Voting '%s' for block %s", validity,
-                    vote['vote']['voting_for_block'])
+        logger.debug('Vote -- write_vote')
         self.bigchain.write_vote(vote)
         return vote
 
@@ -171,7 +174,7 @@ def get_changefeed():
                                   prefeed=initial())
 
 
-def start():
+def start(q):
     """Create, start, and return the block pipeline."""
 
     pipeline = create_pipeline()
