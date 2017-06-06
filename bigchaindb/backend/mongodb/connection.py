@@ -122,7 +122,8 @@ class MongoDBConnection(Connection):
         """
 
         # TODO(Krish): Why do these logs do not appear even when all loglevels
-        # are set to 'debug' in the .bigchaindb file?
+        # are set to 'debug' in the .bigchaindb file? But they do appear during
+        # testing!?
         logger.debug('ssl: {}'.format(self.ssl))
         logger.debug('ca_cert: {}'.format(self.ca_cert))
         logger.debug('certfile: {}'.format(self.certfile))
@@ -171,6 +172,7 @@ class MongoDBConnection(Connection):
         # `initialize_replica_set` might raise `ConnectionFailure` or `OperationFailure`.
         except (pymongo.errors.ConnectionFailure,
                 pymongo.errors.OperationFailure) as exc:
+            logger.info('Error during connection: {}'.format(exc))
             if "Authentication fail" in str(exc):
                 raise AuthenticationError() from exc
             raise ConnectionError() from exc

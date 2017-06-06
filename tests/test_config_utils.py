@@ -193,7 +193,12 @@ def test_autoconfigure_read_both_from_file_and_env(monkeypatch, request):
         'replicaset': 'bigchain-rs',
         'ssl': False,
         'login': None,
-        'password': None
+        'password': None,
+        'ca_cert': None,
+        'certfile': None,
+        'keyfile': None,
+        'keyfile_passphrase': None,
+        'crlfile': None
     }
 
     database = {}
