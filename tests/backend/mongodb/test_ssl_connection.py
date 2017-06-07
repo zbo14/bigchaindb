@@ -38,15 +38,17 @@ def mock_config_opts():
 
 """
 
+"""
 @pytest.fixture
 def mongodb_connection():
     import bigchaindb
     return MongoClient(host=bigchaindb.config['database']['host'],
                        port=bigchaindb.config['database']['port'])
+"""
 
 
 @pytest.mark.bdb_ssl
-def test_ssl_get_connection_returns_the_correct_instance(db_host, db_port, mock_certificates):
+def test_ssl_get_connection_returns_the_correct_instance(db_host, mock_certificates):
     from bigchaindb.backend import connect
     from bigchaindb.backend.connection import Connection
     from bigchaindb.backend.mongodb.connection import MongoDBConnection
@@ -55,7 +57,7 @@ def test_ssl_get_connection_returns_the_correct_instance(db_host, db_port, mock_
     config = {
         'backend': 'mongodb',
         'host': db_host,
-        'port': db_port,
+        'port': 37017,
         'name': 'test',
         'replicaset': 'bigchain-rs',
         'ssl': True,
