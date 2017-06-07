@@ -2,10 +2,10 @@ from unittest import mock
 
 import pytest
 import pymongo
-#from pymongo import MongoClient
+# from pymongo import MongoClient
 from pymongo.database import Database
-#import py
-#from ssl import CERT_REQUIRED
+# import py
+# from ssl import CERT_REQUIRED
 
 
 pytestmark = pytest.mark.bdb_ssl
@@ -27,7 +27,8 @@ def mock_ssl_cmd_line_opts():
         ],
         'ok': 1.0,
         'parsed': {'replication': {'replSet': 'bigchain-rs'},
-            'storage': {'dbPath': '/data'}}}
+                   'storage': {'dbPath': '/data'}}
+        }
 
 
 """
@@ -50,12 +51,12 @@ def mongodb_connection():
 
 
 @pytest.mark.bdb_ssl
-def test_ssl_get_connection_returns_the_correct_instance(db_host, mock_certificates):
+def test_ssl_get_connection_returns_the_correct_instance(db_host, mock_certificates_base_dir):
     from bigchaindb.backend import connect
     from bigchaindb.backend.connection import Connection
     from bigchaindb.backend.mongodb.connection import MongoDBConnection
 
-    print('Mock Certs: ', mock_certificates)
+    print('Mock Certs: ', mock_certificates_base_dir)
     config = {
         'backend': 'mongodb',
         'host': db_host,
@@ -63,10 +64,10 @@ def test_ssl_get_connection_returns_the_correct_instance(db_host, mock_certifica
         'name': 'test',
         'replicaset': 'bigchain-rs',
         'ssl': True,
-        'ca_cert':   str(mock_certificates) + '/ca.crt',
-        'crlfile':   str(mock_certificates) + '/crl.pem',
-        'certfile':  str(mock_certificates) + '/test_bdb_ssl.crt',
-        'keyfile':   str(mock_certificates) + '/test_bdb_ssl.key',
+        'ca_cert':   mock_certificates_base_dir + '/ca.crt',
+        'crlfile':   mock_certificates_base_dir + '/crl.pem',
+        'certfile':  mock_certificates_base_dir + '/test_bdb_ssl.crt',
+        'keyfile':   mock_certificates_base_dir + '/test_bdb_ssl.key',
         'keyfile_passphrase': ''
     }
 
@@ -219,7 +220,7 @@ def test_wait_for_replica_set_initialization(mongodb_connection):
 
 
 @pytest.mark.bdb_ssl
-def test_ssl_initialize_replica_set(mock_ssl_cmd_line_opts, mock_certificates):
+def test_ssl_initialize_replica_set(mock_ssl_cmd_line_opts, mock_certificates_base_dir):
     from bigchaindb.backend.mongodb.connection import initialize_replica_set
 
     with mock.patch.object(Database, 'command') as mock_command:
@@ -237,11 +238,11 @@ def test_ssl_initialize_replica_set(mock_ssl_cmd_line_opts, mock_certificates):
                                       True,
                                       None,
                                       None,
-                                      str(mock_certificates) + '/ca.crt',
-                                      str(mock_certificates) + '/test_bdb_ssl.crt',
-                                      str(mock_certificates) + '/test_bdb_ssl.key',
+                                      mock_certificates_base_dir + '/ca.crt',
+                                      mock_certificates_base_dir + '/test_bdb_ssl.crt',
+                                      mock_certificates_base_dir + '/test_bdb_ssl.key',
                                       '',
-                                      str(mock_certificates) + '/crl.pem') is None
+                                      mock_certificates_base_dir + '/crl.pem') is None
 
     # test it raises OperationError if anything wrong
     with mock.patch.object(Database, 'command') as mock_command:
@@ -258,8 +259,8 @@ def test_ssl_initialize_replica_set(mock_ssl_cmd_line_opts, mock_certificates):
                                    True,
                                    None,
                                    None,
-                                   str(mock_certificates) + '/ca.crt',
-                                   str(mock_certificates) + '/test_bdb_ssl.crt',
-                                   str(mock_certificates) + '/test_bdb_ssl.key',
+                                   mock_certificates_base_dir + '/ca.crt',
+                                   mock_certificates_base_dir + '/test_bdb_ssl.crt',
+                                   mock_certificates_base_dir + '/test_bdb_ssl.key',
                                    '',
-                                   str(mock_certificates) + '/crl.pem') is None
+                                   mock_certificates_base_dir + '/crl.pem') is None
