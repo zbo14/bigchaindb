@@ -181,7 +181,7 @@ def test_initialize_replica_set(mock_cmd_line_opts):
 
         # check that it returns
         assert initialize_replica_set('host', 1337, 1000, 'dbname', False, None, None,
-                None, None, None, None, None) is None
+                                      None, None, None, None, None) is None
 
     # test it raises OperationError if anything wrong
     with mock.patch.object(Database, 'command') as mock_command:
@@ -192,4 +192,4 @@ def test_initialize_replica_set(mock_cmd_line_opts):
 
         with pytest.raises(pymongo.errors.OperationFailure):
             initialize_replica_set('host', 1337, 1000, 'dbname', False, None,
-                    None, None, None, None, None, None) is None
+                                   None, None, None, None, None, None) is None

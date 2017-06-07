@@ -88,8 +88,8 @@ class MongoDBConnection(Connection):
         # We verify if this is true in our config too.
         if self.ssl is not True:
             raise ConfigurationError('The ca_cert ({}) parameter is '
-                    'specified without ssl=True '
-                    'parameter'.format(self.ca_cert))
+                                     'specified without ssl=True '
+                                     'parameter'.format(self.ca_cert))
 
         logger.info('Connecting to MongoDB over TLS/SSL...')
         # TODO(Krish)
@@ -153,10 +153,10 @@ class MongoDBConnection(Connection):
             if self.ca_cert is None or self.certfile is None or \
                     self.keyfile is None or self.crlfile is None:
                 client = pymongo.MongoClient(self.host,
-                                            self.port,
-                                            replicaset=self.replicaset,
-                                            serverselectiontimeoutms=self.connection_timeout,
-                                            ssl=self.ssl)
+                                             self.port,
+                                             replicaset=self.replicaset,
+                                             serverselectiontimeoutms=self.connection_timeout,
+                                             ssl=self.ssl)
             else:
                 client = self._secure_connect()
 

@@ -2,30 +2,32 @@ from unittest import mock
 
 import pytest
 import pymongo
-from pymongo import MongoClient
+#from pymongo import MongoClient
 from pymongo.database import Database
-import py
-from ssl import CERT_REQUIRED
+#import py
+#from ssl import CERT_REQUIRED
 
 
 pytestmark = pytest.mark.bdb_ssl
 
+
 @pytest.fixture
 def mock_ssl_cmd_line_opts():
-    #create_conf_files() Is this required?
-    return {'argv': ['mongod',
-                     '--dbpath=/data',
-                     '--replSet=bigchain-rs',
-                     '--sslMode=requireSSL',
-                     '--sslAllowInvalidHostnames',
-                     '--sslPEMKeyFile=test_mdb_ssl_cert_and_key.pem',
-                     '--sslCAFile=/tmp/test-ssl/ca.crt',
-                     '--sslPEMKeyPassword=""',
-                     '--sslCRLFile=/tmp/test-ssl/crl.pem'
-                    ],
-            'ok': 1.0,
-            'parsed': {'replication': {'replSet': 'bigchain-rs'},
-                       'storage': {'dbPath': '/data'}}}
+    # create_conf_files() Is this required?
+    return {'argv': [
+        'mongod',
+        '--dbpath=/data',
+        '--replSet=bigchain-rs',
+        '--sslMode=requireSSL',
+        '--sslAllowInvalidHostnames',
+        '--sslPEMKeyFile=test_mdb_ssl_cert_and_key.pem',
+        '--sslCAFile=/tmp/test-ssl/ca.crt',
+        '--sslPEMKeyPassword=""',
+        '--sslCRLFile=/tmp/test-ssl/crl.pem'
+        ],
+        'ok': 1.0,
+        'parsed': {'replication': {'replSet': 'bigchain-rs'},
+            'storage': {'dbPath': '/data'}}}
 
 
 """
@@ -250,14 +252,14 @@ def test_ssl_initialize_replica_set(mock_ssl_cmd_line_opts, mock_certificates):
 
         with pytest.raises(pymongo.errors.OperationFailure):
             initialize_replica_set('host',
-                                    1337,
-                                    1000,
-                                    'dbname',
-                                    True,
-                                    None,
-                                    None,
-                                    str(mock_certificates) + '/ca.crt',
-                                    str(mock_certificates) + '/test_bdb_ssl.crt',
-                                    str(mock_certificates) + '/test_bdb_ssl.key',
-                                    '',
-                                    str(mock_certificates) + '/crl.pem') is None
+                                   1337,
+                                   1000,
+                                   'dbname',
+                                   True,
+                                   None,
+                                   None,
+                                   str(mock_certificates) + '/ca.crt',
+                                   str(mock_certificates) + '/test_bdb_ssl.crt',
+                                   str(mock_certificates) + '/test_bdb_ssl.key',
+                                   '',
+                                   str(mock_certificates) + '/crl.pem') is None

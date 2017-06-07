@@ -480,7 +480,7 @@ def mocked_setup_sub_logger(mocker):
         'bigchaindb.log.setup.setup_sub_logger', autospec=True, spec_set=True)
 
 
-ca_crt="""-----BEGIN CERTIFICATE-----
+ca_crt = """-----BEGIN CERTIFICATE-----
 MIIGoDCCBIigAwIBAgIJAKTE39sa24PHMA0GCSqGSIb3DQEBCwUAMIGMMQswCQYD
 VQQGEwJERTEPMA0GA1UECAwGQmVybGluMQ8wDQYDVQQHDAZCZXJsaW4xGDAWBgNV
 BAoMD0JpZ2NoYWluREIgR21iSDEMMAoGA1UECwwDRU5HMRAwDgYDVQQDDAdURVNU
@@ -519,7 +519,7 @@ jzwoZwr+JliWPEmtR9N8v6ZWAoEkoZcIjLBlqYRHLt8uDwiSGUGJQO18NhTEii2Y
 Qs3HMrZBFYSooUdps/9YA9mZtfI=
 -----END CERTIFICATE-----"""
 
-crl_pem="""-----BEGIN X509 CRL-----
+crl_pem = """-----BEGIN X509 CRL-----
 MIIDoTCCAYkCAQEwDQYJKoZIhvcNAQELBQAwgYwxCzAJBgNVBAYTAkRFMQ8wDQYD
 VQQIDAZCZXJsaW4xDzANBgNVBAcMBkJlcmxpbjEYMBYGA1UECgwPQmlnY2hhaW5E
 QiBHbWJIMQwwCgYDVQQLDANFTkcxEDAOBgNVBAMMB1RFU1QtQ0ExITAfBgkqhkiG
@@ -542,7 +542,7 @@ BPet7/eZs9gwcpcYooRjSD0zYvW3/wngqTPY/nPMZ4Wpm6QivGZo7LfMz5regjeT
 DMQWkWlP8aup1aPeoDFXC2tzQhVK
 -----END X509 CRL-----"""
 
-test_mdb_ssl_cert_and_key_file="""Certificate:
+test_mdb_ssl_cert_and_key_file = """Certificate:
     Data:
         Version: 3 (0x2)
         Serial Number: 1 (0x1)
@@ -730,7 +730,7 @@ d2G+bQP6dkKhATdyiK6XoEk0bP3meD4LWgRdsQdMTI2ayBVis8LREcMm0F3SaUgB
 gHiBIz7uxpEmV18w8MA+aiVZw3Ov3lE=
 -----END PRIVATE KEY-----"""
 
-test_bdb_ssl_cert_file="""Certificate:
+test_bdb_ssl_cert_file = """Certificate:
     Data:
         Version: 3 (0x2)
         Serial Number: 2 (0x2)
@@ -863,7 +863,7 @@ YzTx/JShHz8c4qH6So2inEZbj9jm2Z802JeEPwm+ZnQaUZZzUoCcUa14GBVUkDoc
 GGGQd7AQsxhbdxHzHhgSCN2VItRBBpYqtRGMPzNxMpkS3kIp
 -----END CERTIFICATE-----"""
 
-test_bdb_ssl_key_file="""-----BEGIN PRIVATE KEY-----
+test_bdb_ssl_key_file = """-----BEGIN PRIVATE KEY-----
 MIIJQwIBADANBgkqhkiG9w0BAQEFAASCCS0wggkpAgEAAoICAQDLWSHEbreTx9GH
 4Y8GB8ZPMTVNzEOOJb9KCD7fOrDYPLVFOUmq7xdTLPp0c072Nq6tmog8Gq3CrByz
 FDkYijNUVFkRMbiKGg/Ved1tjWOgjwqjXrJA0GeEt7ZLZkOFihigUQjJsAkLjbyJ
@@ -915,6 +915,7 @@ JYoPRUXJv0LiUamTThm4zAs9JOOC2I5/UbgifH21WxllD62fCmxJqF+t0lQWMRUw
 GYiU41SiczC2rvGt6PKAlm0VKwBV+iCsywCuP7ywTq5n7/tCCPKMRcdTdpsgA9Sj
 ygiQ48fCpPjwXP/+v5TyNchX2aTRCqA=
 -----END PRIVATE KEY-----"""
+
 
 @pytest.fixture(scope='session')
 def mock_certificates(tmpdir_factory):
