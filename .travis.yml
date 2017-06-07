@@ -28,6 +28,7 @@ matrix:
     env: TOXENV=docsserver
   include:
   - python: 3.4
+    # TODO addons are deprecated
     addons: 
       rethinkdb: '2.3.5'
     env: BIGCHAINDB_DATABASE_BACKEND=rethinkdb

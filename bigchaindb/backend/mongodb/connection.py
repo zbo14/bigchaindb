@@ -43,7 +43,6 @@ class MongoDBConnection(Connection):
         self.keyfile_passphrase = keyfile_passphrase or bigchaindb.config['database'].get('keyfile_passphrase', None)
         self.crlfile = crlfile or bigchaindb.config['database'].get('crlfile', None)
 
-
     @property
     def db(self):
         return self.conn[self.dbname]
@@ -73,7 +72,6 @@ class MongoDBConnection(Connection):
             raise DuplicateKeyError from exc
         except pymongo.errors.OperationFailure as exc:
             raise OperationError from exc
-
 
     def _secure_connect(self):
         """
@@ -109,7 +107,6 @@ class MongoDBConnection(Connection):
                                      ssl_crlfile=self.crlfile,
                                      ssl_cert_reqs=CERT_REQUIRED)
         return client
-
 
     def _connect(self):
         """Try to connect to the database.
