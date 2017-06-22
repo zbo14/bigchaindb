@@ -13,7 +13,7 @@ If we don't want to expose the websockets api we can bind it the `localhost` by
 changing the BigchainDB configuration file or by setting the
 `BIGCHAINDB_WSSERVER_HOST` environment variable.
 
-##### websocket_to_rabbitmq.py
+- **websocket_to_rabbitmq.py**
 
 This code connects to the BigchainDB events api and to a RabbitMQ instance and
 publishes the messages received by the events api to a RabbitMQ queue.
@@ -52,7 +52,7 @@ ws = websocket.WebSocketApp(WEBSOCKET_URL,
 ws.run_forever()
 ```
 
-### listener.py
+- **listener.py**
 
 This is just an example of a client consuming messages from RabbitMQ.
 
@@ -76,7 +76,8 @@ print('Waiting for messages...')
 channel.start_consuming()
 ```
 
-### requirements.txt
+- **requirements.txt**
+
 ```text
 websocket-client==0.40.0
 pika==0.10.0
