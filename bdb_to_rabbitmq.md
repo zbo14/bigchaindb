@@ -52,7 +52,7 @@ ws = websocket.WebSocketApp(WEBSOCKET_URL,
 ws.run_forever()
 ```
 
-##### listener.py
+### listener.py
 
 This is just an example of a client consuming messages from RabbitMQ.
 
@@ -76,7 +76,7 @@ print('Waiting for messages...')
 channel.start_consuming()
 ```
 
-##### requirements.txt
+### requirements.txt
 ```text
 websocket-client==0.40.0
 pika==0.10.0
